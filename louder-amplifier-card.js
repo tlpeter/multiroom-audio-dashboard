@@ -1,4 +1,4 @@
-/* Multiroom Audio Dashboard v2.2.0-beta.3 — four styles, local colors and Music Assistant audio relay. */
+/* Multiroom Audio Dashboard v2.2.0-beta.4 — four styles, local colors and Music Assistant audio relay. */
 (() => {
   const TAG = 'multiroom-audio-dashboard';
   const LEGACY_TAG = 'louder-amplifier-card';
@@ -137,6 +137,21 @@
     zang: {name:'Zang', description:'Minder laag, meer verstaanbaarheid', values:[-4,-3,-2,-2,-1,0,0,1,2,3,3,2,1,0,-1]},
     nacht: {name:'Nacht', description:'Minder bas en zachter hoog', values:[-6,-5,-4,-3,-2,-1,0,0,1,1,1,0,-1,-2,-3]}
   };
+  // Named user profiles: stored per HA user (frontend user data), browser storage only as fallback.
+  const CUSTOM_KEY='multiroom-audio-dashboard:eq-presets',CUSTOM_MAX=24,CUSTOM_NAME_MAX=40;
+  const BUILTIN_NAMES=new Set(Object.values(PRESETS).map(p=>p.name.toLowerCase()));
+  const cleanName=(v)=>typeof v==='string'?v.trim().replace(/\s+/g,' '):'';
+  function cleanCustomPresets(raw){
+    const out=[],seen=new Set();
+    for(const p of Array.isArray(raw?.presets)?raw.presets:[]){
+      if(out.length>=CUSTOM_MAX)break;
+      const name=cleanName(p?.name),key=name.toLowerCase();
+      if(!name||name.length>CUSTOM_NAME_MAX||BUILTIN_NAMES.has(key)||seen.has(key))continue;
+      if(!Array.isArray(p.values)||p.values.length!==FREQUENCIES.length||!p.values.every(v=>typeof v==='number'&&Number.isFinite(v)&&v>=-15&&v<=15))continue;
+      seen.add(key);out.push({name,values:p.values.map(v=>Math.round(v*100)/100)});
+    }
+    return out;
+  }
   class MultiroomAudioDashboardEditor extends HTMLElement {
     constructor(){
       super();this.attachShadow({mode:'open'});this._known=new Map();
@@ -200,6 +215,7 @@
       this.shadowRoot.addEventListener('change',e=>this._change(e));
       this.shadowRoot.addEventListener('input',e=>this._input(e));
       this.shadowRoot.addEventListener('click',e=>this._click(e));
+      this.shadowRoot.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches?.('[data-custom-name]')){e.preventDefault();this._saveCustomPreset();}});
     }
     setConfig(c) {
       this._stopLive();this._liveRetryAt=0;
@@ -227,7 +243,7 @@
       this._cfg={...c,boards};this._tab=Math.max(0,boards.findIndex(b=>b.bands.length));
       this._allowed=new Set(ids);this._loadColors();this._build();this._sync();
     }
-    set hass(h) { this._hass = h; if(this._cfg) this._sync(); }
+    set hass(h) { this._hass = h; if(this._cfg) this._sync(); if(this._cfg&&!this._customLoading){this._customLoading=true;this._loadCustomPresets();} }
     get hass() { return this._hass; }
     getCardSize() { return 16; }
     connectedCallback() { document.addEventListener('visibilitychange',this._visibilityChanged);this._observe(); }
@@ -356,6 +372,7 @@
       @media(max-width:900px){.board-body{grid-template-columns:95px minmax(0,1fr)}}
       @media(max-width:620px){.board-body{grid-template-columns:98px minmax(0,1fr);gap:10px}.speaker-art{width:98px}.master-wrap{grid-template-columns:130px minmax(0,1fr);gap:8px}.nav button{font-size:11px;padding:10px 13px;min-height:40px}.master .small-caps{font-size:8px;letter-spacing:.6px}.section-line p{max-width:110px}.selects{gap:6px}}
       .presets{margin-top:15px;padding:14px;border:1px solid var(--line);border-radius:14px;background:#f8fbfc}.preset-heading{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted)}.preset-heading b{color:var(--ink)}.preset-buttons{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.preset-buttons button{min-height:38px;font-size:11px;padding:8px 13px}.preset-buttons button[aria-pressed=true]{background:#e0f4f3;border-color:#83c8c9;color:#127e87}.preset-description,.preset-message{font-size:11px;color:var(--muted);line-height:1.6;margin-top:9px}.preset-message{color:#127e87}.preset-message:empty{display:none}
+      .custom-presets-wrap{margin-top:13px;padding-top:11px;border-top:1px dashed var(--line)}.custom-item{display:inline-flex;gap:3px}.custom-delete{min-width:36px;padding:8px 9px}.custom-empty{font-size:11px;color:var(--muted);align-self:center}.custom-save{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.custom-save input{flex:1 1 180px;min-width:0;min-height:38px;padding:0 11px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:12px;background:transparent;color:var(--ink)}.custom-save button{min-height:38px;font-size:11px}
       @media(prefers-reduced-motion:reduce){.playing .cone{animation:none}}
       </style><main class="studio"><header class="top"><div class="brand"><div class="brandmark">≋</div><div><div class="eyebrow">Jouw geluid. Jouw instelling.</div><h1>Multiroom Audio Dashboard</h1><p class="subline">${c.boards.length} speler${c.boards.length===1?'':'s'} · jouw geluid</p></div></div><nav class="nav"><button class="manage-speakers" data-act="manage-speakers" aria-label="Speakers beheren">⚙ Speakers beheren</button><a href="/lovelace/home" data-nav>⌂ Home</a><button data-act="more-group">Speler openen ↗</button></nav></header><p class="speaker-access-note" role="status" aria-live="polite"></p>
       <div class="overview"><section class="card card-pad"><div class="row"><span class="eyebrow">Nu aan het spelen</span><span class="pill" id="group-state"></span></div><div class="screen"><div class="monitor-meta"><div class="track-icon">♫</div><div class="track"><strong id="title">Even verbinden…</strong><small id="artist">Louder-speakers</small></div><span class="time" id="time">—</span></div><canvas class="spectrum" aria-label="Spectrumdemo; geen meting van het audiosignaal"></canvas><div class="freq"><span>32 Hz</span><span>125</span><span>500</span><span>2k</span><span>8k</span><span>16k</span></div><div class="demo-line"><span>Spectrumdemo · geen live-audioanalyse</span><label><input type="checkbox" id="demo" checked> Animatie</label></div></div><div class="transport"><button data-act="media_previous_track" aria-label="Vorige track">⏮</button><button data-act="media_play_pause" class="play" aria-label="Afspelen of pauzeren" id="play">Ⅱ</button><button data-act="media_next_track" aria-label="Volgende track">⏭</button><button data-act="more-group" aria-label="Speler en wachtrij">☷</button></div></section>
@@ -363,7 +380,8 @@
       <div class="section-line"><h2>Je speakers</h2><p>Live bediening via Home Assistant</p></div><div class="boards">${c.boards.map((b,i)=>`<section class="card card-pad" id="board-${i}"><div class="row board-head"><div><div class="eyebrow">${b.bands.length?'Versterker · ':'Speaker · '}${i+1}</div><h3>${ESC(b.name)}</h3></div><span class="pill" data-status="${i}">—</span></div><div class="board-body">${this._speaker(i)}<div>${this._range(b.player,'Afspeelvolume','volume')}<div class="board-buttons"><button data-act="mute" data-board="${i}" id="mute-${i}">Dempen</button><button data-act="more" data-board="${i}">Speler ↗</button></div><div class="selects">${b.eq?this._select(b.eq,'Equalizer'):''}${b.mixer?this._select(b.mixer,'Kanaalmix'):''}</div></div></div>${this._playerControls(b.player)}<div class="sensors"><span class="sensor">CPU <b id="temp-${i}">—</b></span><span class="sensor">WiFi <b id="wifi-${i}">—</b></span><span class="sensor" id="fault-${i}">Status <b>—</b></span><button data-act="led" data-board="${i}" aria-label="LED van ${ESC(b.name)}" style="font-size:10px;min-height:30px;padding:5px 9px">LED ↗</button><button data-act="fan" data-board="${i}" aria-label="Koeling van ${ESC(b.name)}" style="font-size:10px;min-height:30px;padding:5px 9px">Koeling ↗</button></div></section>`).join('')}</div>
       <section class="card card-pad eq"><div class="row eq-head"><div><span class="eyebrow">Fijnafstelling</span><h2>15-bands equalizer</h2></div><div class="eq-tools"><div class="tabs">${c.boards.map((b,i)=>`<button data-act="tab" data-board="${i}" aria-pressed="${i===this._tab}">${ESC(b.name)}</button>`).join('')}</div><button data-act="flat">Vlak · 0 dB</button></div></div><p class="eq-intro" id="eq-description"></p><div class="eq-scroll"><div class="eq-bands" id="bands"></div></div><div class="eq-axis"><span>Laag · bas</span><span>Midden</span><span>Hoog · detail</span></div><details class="advanced"><summary>Uitgangstrim van dit board · dB</summary><div class="trim-grid" id="trims"></div><p class="eq-intro">Kanaal 1 en 2 zijn de fysieke uitgangen van het geselecteerde board.</p></details></section>
       <p class="error" role="status" aria-live="polite"></p><footer class="foot"><span><b>Bediening live · spectrum demo.</b> De balkjes tonen de sfeer van het ontwerp, niet het gemeten geluid.</span><span>Voor echt audio-reactief beeld: Music Assistant → Plugins → MilkDrop Visualizer.</span></footer></main>`;
-      this._q('.eq-scroll').insertAdjacentHTML('beforebegin',`<div class="presets"><div class="preset-heading"><b>Equalizerprofielen</b><span id="preset-active">Huidig: —</span></div><div class="preset-buttons" role="group" aria-label="Equalizerprofielen">${Object.entries(PRESETS).map(([id,p])=>`<button data-act="preset" data-preset="${id}" aria-pressed="false" title="${ESC(p.description)}">${ESC(p.name)}</button>`).join('')}</div><p class="preset-description" id="preset-description"></p><p class="preset-message" role="status" aria-live="polite"></p></div>`);
+      this._q('.eq-scroll').insertAdjacentHTML('beforebegin',`<div class="presets"><div class="preset-heading"><b>Equalizerprofielen</b><span id="preset-active">Huidig: —</span></div><div class="preset-buttons" role="group" aria-label="Equalizerprofielen">${Object.entries(PRESETS).map(([id,p])=>`<button data-act="preset" data-preset="${id}" aria-pressed="false" title="${ESC(p.description)}">${ESC(p.name)}</button>`).join('')}</div><p class="preset-description" id="preset-description"></p><p class="preset-message" role="status" aria-live="polite"></p><div class="custom-presets-wrap"><div class="preset-heading"><b>Mijn profielen</b><span class="custom-store"></span></div><div class="preset-buttons" id="custom-presets" role="group" aria-label="Mijn profielen"></div><div class="custom-save"><input type="text" data-custom-name maxlength="${CUSTOM_NAME_MAX}" placeholder="Naam, bijv. Avond" aria-label="Naam voor huidige equalizerinstelling" autocomplete="off" enterkeyhint="done"><button type="button" data-act="custom-save">Huidige instelling opslaan</button></div><p class="preset-message custom-message" role="status" aria-live="polite"></p></div></div>`);
+      this._renderCustomPresets();
       this._renderEq(); this._installRetro(); this._q('.eq').hidden=!c.boards.some(b=>b.bands.length); this._all('[data-act=tab]').forEach(el=>{el.hidden=!c.boards[Number(el.dataset.board)].bands.length;}); if(this.isConnected) this._observe();
     }
     _renderEq() {
@@ -374,6 +392,73 @@
       this._q('#eq-description').textContent=b.name+' · de 15 beschikbare EQ-banden van je firmware. Op een telefoon kun je horizontaal door de banden vegen.';
       this._all('[data-act=tab]').forEach(el=>el.setAttribute('aria-pressed',Number(el.dataset.board)===this._tab));
       this._q('.preset-message').textContent='';
+    }
+    async _loadCustomPresets() {
+      let raw=null,store='local';
+      if(typeof this._hass?.callWS==='function'){
+        try{raw=(await this._hass.callWS({type:'frontend/get_user_data',key:CUSTOM_KEY}))?.value;store='ha';}catch{raw=null;}
+      }
+      if(store==='local'){try{raw=JSON.parse(localStorage.getItem(CUSTOM_KEY));}catch{raw=null;}}
+      this._customStore=store;this._customPresets=cleanCustomPresets(raw);
+      this._renderCustomPresets();if(this._cfg)this._sync();
+    }
+    async _storeCustomPresets(list) {
+      const value={version:1,presets:list.map(p=>({name:p.name,values:[...p.values]}))};
+      if(this._customStore==='ha')await this._hass.callWS({type:'frontend/set_user_data',key:CUSTOM_KEY,value});
+      else localStorage.setItem(CUSTOM_KEY,JSON.stringify(value));
+      this._customPresets=list;this._renderCustomPresets();
+    }
+    _renderCustomPresets() {
+      const box=this._q('#custom-presets');if(!box)return;
+      const list=this._customPresets||[],store=this._q('.custom-store');
+      if(store)store.textContent=!this._customPresets?'Laden…':this._customStore==='ha'?'Bewaard in je Home Assistant-account':'Bewaard in deze browser';
+      box.innerHTML=list.length?list.map(p=>{const confirm=this._confirmDelete===p.name;return `<span class="custom-item"><button data-act="custom-preset" data-name="${ESC(p.name)}" aria-pressed="false">${ESC(p.name)}</button><button class="custom-delete" data-act="custom-delete" data-name="${ESC(p.name)}" aria-label="${ESC(confirm?'Bevestig: profiel '+p.name+' verwijderen':'Profiel '+p.name+' verwijderen')}">${confirm?'Verwijderen?':'×'}</button></span>`;}).join(''):'<span class="custom-empty">Nog geen eigen profielen. Stel de schuiven in, geef een naam en sla op.</span>';
+    }
+    _currentProfileValues(board) {
+      // Read the board's live band states and store them in FREQUENCIES order.
+      if(board.bands.length!==FREQUENCIES.length)throw Error('dit board heeft geen 15 EQ-banden');
+      const values=new Array(FREQUENCIES.length).fill(null);
+      board.bands.forEach(f=>{
+        const index=FREQUENCIES.findIndex(hz=>f.frequency===hz||f.entity.endsWith('_left_'+hz)),v=this._num(f.entity);
+        if(index<0||values[index]!==null)throw Error('de frequenties van dit board komen niet overeen');
+        if(v===null||v<-15||v>15)throw Error('niet alle EQ-banden van '+board.name+' zijn beschikbaar');
+        values[index]=Math.round(v*100)/100;
+      });
+      return values;
+    }
+    async _saveCustomPreset() {
+      if(this._savingCustom||this._applyingPreset||!this._customPresets)return;
+      const input=this._q('[data-custom-name]'),name=cleanName(input?.value),b=this._cfg.boards[this._tab],msg=this._q('.custom-message');
+      const fail=text=>{msg.textContent='';this._q('.error').textContent=text;};
+      if(!name)return fail('Geef het profiel eerst een naam.');
+      if(name.length>CUSTOM_NAME_MAX)return fail('De profielnaam mag maximaal '+CUSTOM_NAME_MAX+' tekens hebben.');
+      if(BUILTIN_NAMES.has(name.toLowerCase()))return fail(name+' is al een standaardprofiel. Kies een andere naam.');
+      let values;try{values=this._currentProfileValues(b);}catch(err){return fail('Profiel niet opgeslagen: '+err.message+'.');}
+      const existing=this._customPresets.findIndex(p=>p.name.toLowerCase()===name.toLowerCase());
+      if(existing<0&&this._customPresets.length>=CUSTOM_MAX)return fail('Je kunt maximaal '+CUSTOM_MAX+' eigen profielen bewaren. Verwijder er eerst een.');
+      const list=this._customPresets.map(p=>({name:p.name,values:[...p.values]}));
+      if(existing<0)list.push({name,values});else list[existing]={name,values};
+      this._savingCustom=true;this._confirmDelete=null;
+      try{
+        await this._storeCustomPresets(list);
+        this._q('.error').textContent='';if(input)input.value='';
+        msg.textContent='Profiel '+name+(existing<0?' opgeslagen':' bijgewerkt')+' met de huidige instelling van '+b.name+'. Er is niets naar de speaker gestuurd.';
+      }catch(err){fail('Profiel niet opgeslagen: '+(err?.message||err)+'.');}
+      finally{this._savingCustom=false;this._sync();}
+    }
+    async _deleteCustomPreset(name) {
+      if(this._savingCustom||this._applyingPreset||!this._customPresets?.some(p=>p.name===name))return;
+      clearTimeout(this._confirmTimer);
+      if(this._confirmDelete!==name){
+        // Two-step delete without browser dialogs; the confirmation expires after 5 s.
+        this._confirmDelete=name;this._renderCustomPresets();this._sync();
+        this._confirmTimer=setTimeout(()=>{this._confirmDelete=null;this._renderCustomPresets();this._sync();},5000);
+        return;
+      }
+      this._confirmDelete=null;this._savingCustom=true;
+      try{await this._storeCustomPresets(this._customPresets.filter(p=>p.name!==name));this._q('.custom-message').textContent='Profiel '+name+' verwijderd.';}
+      catch(err){this._renderCustomPresets();this._q('.error').textContent='Profiel niet verwijderd: '+(err?.message||err)+'.';}
+      finally{this._savingCustom=false;this._sync();}
     }
     _presetValues(board, preset) {
       if(!preset || board.bands.length!==FREQUENCIES.length)throw Error('Dit profiel vereist de 15 EQ-banden van je board.');
@@ -397,11 +482,17 @@
     _syncPresets() {
       const b=this._cfg.boards[this._tab];if(!b?.bands.length)return;
       const enabled=this._st(b.eq)?.state==='EQ 15 Band';
-      const match=enabled?Object.entries(PRESETS).find(([,p])=>{
-        try{return this._presetValues(b,p).every((v,i)=>this._num(b.bands[i].entity)===v);}catch{return false;}
-      }):null;
-      this._q('#preset-active').textContent=this._applyingPreset?'Wordt toegepast…':'Huidig: '+(!this._ok(b.eq)?'Onbekend':!enabled?'Equalizer uit':match?match[1].name:'Aangepast');
-      this._q('#preset-description').textContent=(match?match[1].description+'. ':'')+'Kies een profiel voor '+b.name+'. De equalizer wordt ingeschakeld; daarna kun je zelf fijnregelen.';
+      const same=p=>{try{return this._presetValues(b,p).every((v,i)=>this._num(b.bands[i].entity)===v);}catch{return false;}};
+      const match=enabled?Object.entries(PRESETS).find(([,p])=>same(p)):null;
+      const custom=enabled&&!match?(this._customPresets||[]).find(same):null;
+      this._q('#preset-active').textContent=this._applyingPreset?'Wordt toegepast…':'Huidig: '+(!this._ok(b.eq)?'Onbekend':!enabled?'Equalizer uit':match?match[1].name:custom?custom.name:'Aangepast');
+      this._q('#preset-description').textContent=(match?match[1].description+'. ':custom?'Eigen profiel. ':'')+'Kies een profiel voor '+b.name+'. De equalizer wordt ingeschakeld; daarna kun je zelf fijnregelen.';
+      const busy=!!this._applyingPreset||!!this._savingCustom;
+      this._all('[data-act=custom-preset]').forEach(el=>{const p=this._customPresets?.find(x=>x.name===el.dataset.name);el.disabled=busy||!this._presetReady(b,p);el.setAttribute('aria-pressed',custom&&custom.name===el.dataset.name?'true':'false');});
+      this._all('[data-act=custom-delete]').forEach(el=>{el.disabled=busy;});
+      let readable=true;try{this._currentProfileValues(b);}catch{readable=false;}
+      const save=this._q('[data-act=custom-save]');if(save)save.disabled=busy||!this._customPresets||!readable;
+      const nameInput=this._q('[data-custom-name]');if(nameInput)nameInput.disabled=busy||!this._customPresets;
       this._all('[data-act=preset]').forEach(el=>{el.disabled=!!this._applyingPreset||!this._presetReady(b,PRESETS[el.dataset.preset]);el.setAttribute('aria-pressed',match?.[0]===el.dataset.preset?'true':'false');});
       this._all('[data-act=tab]').forEach(el=>{el.disabled=!!this._applyingPreset;});
       this._q('[data-act=flat]').disabled=!!this._applyingPreset||!this._presetReady(b,PRESETS.vlak);
@@ -409,7 +500,7 @@
     }
     async _applyPreset(id) {
       if(this._applyingPreset)return;
-      const b=this._cfg.boards[this._tab],preset=PRESETS[id];
+      const b=this._cfg.boards[this._tab],preset=typeof id==='object'?this._customPresets?.find(p=>p.name===id?.custom):PRESETS[id];
       if(!this._presetReady(b,preset)){this._q('.error').textContent='Profiel niet toegepast: de equalizer of een EQ-band is niet beschikbaar.';return;}
       const values=this._presetValues(b,preset);
       this._applyingPreset=true;this._q('.preset-message').textContent='Profiel '+preset.name+' toepassen op '+b.name+'…';this._sync();
@@ -502,6 +593,9 @@
       if(a==='mute-group') {await this._muteGroup();return;}
       if(a==='mute'){await this._call('media_player','volume_mute',b.player,{is_volume_muted:!this._st(b.player)?.attributes.is_volume_muted});return;}
       if(a==='flat'||a==='preset'){await this._applyPreset(a==='flat'?'vlak':el.dataset.preset);return;}
+      if(a==='custom-preset'){await this._applyPreset({custom:el.dataset.name});return;}
+      if(a==='custom-save'){await this._saveCustomPreset();return;}
+      if(a==='custom-delete'){await this._deleteCustomPreset(el.dataset.name);return;}
       if(['media_play_pause','media_previous_track','media_next_track'].includes(a))await this._call('media_player',a,g,{});
     }
     _supports(id, service) {
