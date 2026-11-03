@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.0-beta.4
+
+- Save the current 15-band EQ setting of a board as a named profile under **Mijn profielen** and apply it later with one click, also on another board with the same 15 bands. Saving sends no device commands. (#23)
+- Saved profiles use the same preflight as built-in profiles (all bands available, values within each entity's range/step, stop on first failure). Same name updates, built-in names are refused, at most 24 profiles of up to 40 characters, two-step delete without browser dialogs.
+- Profiles are stored per Home Assistant user via the frontend user-data API; browser storage is only a fallback when that API is unavailable. Stored data is validated on load.
+
 ## 2.2.0-beta.3
 
 - Add a prominent Speakers beheren button at the top of the card. Open the native HA card editor directly without entering dashboard edit mode or scrolling past the equalizer.

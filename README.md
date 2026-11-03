@@ -2,7 +2,7 @@
 
 Home Assistant-audiobediening met vier instelbare stijlen, spectrum of analoge bronmeters, eigen kleuren en optionele equalizerbediening. Voorheen Louder Studio Card.
 
-**Status: 2.2.0-beta.3.** Automatisch getest met fictieve HA-statussen en PCM-audio. Praktijktests per speaker/integratie staan nog open. GitHub kan geen apparaten bij jou thuis testen. Deze repository installeert niets automatisch in Home Assistant.
+**Status: 2.2.0-beta.4.** Automatisch getest met fictieve HA-statussen en PCM-audio. Praktijktests per speaker/integratie staan nog open. GitHub kan geen apparaten bij jou thuis testen. Deze repository installeert niets automatisch in Home Assistant.
 
 Snel naar: [Kleuren en stijl](#waar-stel-ik-dit-in) · [Andere speakers kiezen](#andere-slimme-speakers-toevoegen) · [Installeren via HACS](#installeren-via-hacs).
 
@@ -38,6 +38,19 @@ De beelden hieronder zijn screenshots van de werkende kaart met fictieve spelers
 ![Kleuren en uiterlijk: stijl, visualisatie, databron, vier kleurvelden en kleurcombinaties](https://raw.githubusercontent.com/tlpeter/multiroom-audio-dashboard/main/docs/images/appearance-settings.png)
 
 De voorkeuren worden direct in deze browser bewaard; iedere stijl onthoudt zijn eigen kleuren. Je hoeft hiervoor geen YAML aan te passen. EQ-profielen en schuiven staan verder naar beneden en verschijnen alleen bij een daarvoor geconfigureerde versterker.
+
+### Eigen equalizerprofielen opslaan
+
+Vanaf **2.2.0-beta.4** kun je een eigen EQ-instelling bewaren onder een naam:
+
+1. Kies in de equalizer het board (bijvoorbeeld **Links**) en zet de schuiven zoals je wilt.
+2. Typ onder **Mijn profielen** een naam, bijvoorbeeld *Avond*, en klik op **Huidige instelling opslaan** (of druk op Enter).
+3. Je profiel verschijnt als knop. Klik erop om het later weer toe te passen, op hetzelfde of een ander board met 15 banden.
+
+- Opslaan leest alleen de huidige stand; er wordt niets naar de speaker gestuurd.
+- Dezelfde naam nog eens opslaan werkt het profiel bij. Namen van standaardprofielen (Bas, Disco, …) zijn niet toegestaan. Maximaal 24 profielen, namen tot 40 tekens.
+- Verwijderen: klik op **×** en daarna binnen 5 seconden op **Verwijderen?**.
+- De profielen worden bewaard in je **Home Assistant-gebruikersaccount**, dus ze zijn er ook op je telefoon of tablet als je met dezelfde HA-gebruiker inlogt. Een andere HA-gebruiker (bijvoorbeeld een wandtablet met een eigen account) ziet ze niet.
 
 ### Andere slimme speakers toevoegen
 
@@ -86,7 +99,7 @@ players:
 
 Bij een bestaande installatie: vervang de oude inline/lokale resource eenmalig door bovenstaande HACS-resource. Laad maar **één versie** van het JavaScript. Je oude `custom:louder-amplifier-card`-type, `boards`-configuratie en stijlvoorkeuren blijven werken. De oude bestandsnaam is behouden voor compatibiliteit. Gebruik voor nieuwe HACS-installaties het nieuwe GitHub-adres.
 
-Zonder HACS: plaats het releasebestand `louder-amplifier-card.js` in `/config/www/multiroom-audio-dashboard/`, registreer `/local/multiroom-audio-dashboard/louder-amplifier-card.js?v=2.2.0-beta.3` als module en herlaad. Een HA-herstart is niet nodig voor deze frontendresource.
+Zonder HACS: plaats het releasebestand `louder-amplifier-card.js` in `/config/www/multiroom-audio-dashboard/`, registreer `/local/multiroom-audio-dashboard/louder-amplifier-card.js?v=2.2.0-beta.4` als module en herlaad. Een HA-herstart is niet nodig voor deze frontendresource.
 
 ## Uiterlijk en bediening
 
@@ -94,7 +107,7 @@ Zonder HACS: plaats het releasebestand `louder-amplifier-card.js` in `/config/ww
 - Accent, spectrumtop/naald, achtergrond en meterverlichting. Iedere stijl onthoudt zijn eigen kleurkeuze per browser.
 - Afspelen/pauze/stop, vorige/volgende, volume, mute, volumestappen, aan/uit, bron, native geluidsprofiel, positie, shuffle en herhalen, uitsluitend wanneer de HA-speler de functie aanbiedt.
 - **Speler ↗** opent de native HA-bediening voor overige functies en groepering, voor zover de integratie die aanbiedt.
-- Optionele ESPHome-instellingen: mixer, uitgangstrims, sensoren en 15-bands EQ. Profielen: Vlak, Bas, Disco, Rock, Pop, Jazz, Klassiek, Zang en Nacht. [Voorbeeldconfiguratie](examples/card.json).
+- Optionele ESPHome-instellingen: mixer, uitgangstrims, sensoren en 15-bands EQ. Profielen: Vlak, Bas, Disco, Rock, Pop, Jazz, Klassiek, Zang en Nacht, plus je eigen profielen met een naam (zie hieronder). [Voorbeeldconfiguratie](examples/card.json).
 
 Een speaker met een bassregelaar heeft niet automatisch een 15-bands EQ. Zie de [ondersteunings- en testmatrix](docs/SPEAKER_SUPPORT.md) voor alle speakerfamilies en openstaande praktijktests.
 

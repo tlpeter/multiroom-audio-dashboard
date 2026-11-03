@@ -59,6 +59,40 @@ test('profiles target the selected board and manual changes become custom',async
   expect(commands.slice(7).every(c=>c.target.entity_id.startsWith('number.speaker_rechts_left_'))).toBe(true);
 });
 
+test('named equalizer profiles can be saved, reloaded, applied and deleted',async({page},testInfo)=>{
+  await open(page);
+  await page.getByRole('slider',{name:'Links 20 Hz',exact:true}).press('ArrowRight');
+  await page.getByRole('slider',{name:'Links 1,25k Hz',exact:true}).press('ArrowLeft');
+  await expect(page.locator('#preset-active')).toHaveText('Huidig: Aangepast');
+  const before=JSON.parse(await page.locator('#commands').textContent()).length;
+  await page.getByRole('textbox',{name:'Naam voor huidige equalizerinstelling',exact:true}).fill('Avond');
+  await page.getByRole('button',{name:'Huidige instelling opslaan',exact:true}).click();
+  await expect(page.locator('.custom-message')).toContainText('Profiel Avond opgeslagen');
+  await expect(page.locator('#preset-active')).toHaveText('Huidig: Avond');
+  expect(JSON.parse(await page.locator('#commands').textContent())).toHaveLength(before);
+  await page.locator('.presets').screenshot({path:testInfo.outputPath('custom-profiles-desktop.png')});
+  await page.reload();await expect(page.locator('#title')).toHaveText('Demo track');
+  await page.getByRole('button',{name:'Rechts',exact:true}).click();
+  await page.getByRole('button',{name:'Avond',exact:true}).click();
+  await expect(page.locator('#preset-active')).toHaveText('Huidig: Avond');
+  const commands=JSON.parse(await page.locator('#commands').textContent());
+  expect(commands).toHaveLength(2);expect(commands.every(c=>c.target.entity_id.startsWith('number.speaker_rechts_left_'))).toBe(true);
+  await page.getByRole('button',{name:'Profiel Avond verwijderen',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Avond',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Bevestig: profiel Avond verwijderen',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Avond',exact:true})).toHaveCount(0);
+  await expect(page.locator('#preset-active')).toHaveText('Huidig: Aangepast');
+});
+
+test('named profile controls fit a mobile viewport',async({page},testInfo)=>{
+  await page.setViewportSize({width:390,height:844});await open(page);
+  await page.getByRole('textbox',{name:'Naam voor huidige equalizerinstelling',exact:true}).fill('Telefoon');
+  await page.getByRole('textbox',{name:'Naam voor huidige equalizerinstelling',exact:true}).press('Enter');
+  await expect(page.getByRole('button',{name:'Telefoon',exact:true})).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+  await page.locator('.presets').screenshot({path:testInfo.outputPath('custom-profiles-mobile.png')});
+});
+
 test('all four styles fit a mobile viewport',async({page},testInfo)=>{
   await page.setViewportSize({width:390,height:844});await open(page);
   for(const skin of ['modern','retro','vintage','midnight']){
