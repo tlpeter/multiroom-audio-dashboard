@@ -2,7 +2,7 @@
 
 Home Assistant-audiobediening met vier instelbare stijlen, spectrum of analoge bronmeters, eigen kleuren en optionele equalizerbediening. Voorheen Louder Studio Card.
 
-**Status: 2.2.0-beta.4.** Automatisch getest met fictieve HA-statussen en PCM-audio. Praktijktests per speaker/integratie staan nog open. GitHub kan geen apparaten bij jou thuis testen. Deze repository installeert niets automatisch in Home Assistant.
+**Status: 2.2.0-beta.5.** Automatisch getest met fictieve HA-statussen en PCM-audio. Praktijktests per speaker/integratie staan nog open. GitHub kan geen apparaten bij jou thuis testen. Deze repository installeert niets automatisch in Home Assistant.
 
 Snel naar: [Kleuren en stijl](#waar-stel-ik-dit-in) · [Andere speakers kiezen](#andere-slimme-speakers-toevoegen) · [Installeren via HACS](#installeren-via-hacs).
 
@@ -38,6 +38,16 @@ De beelden hieronder zijn screenshots van de werkende kaart met fictieve spelers
 ![Kleuren en uiterlijk: stijl, visualisatie, databron, vier kleurvelden en kleurcombinaties](https://raw.githubusercontent.com/tlpeter/multiroom-audio-dashboard/main/docs/images/appearance-settings.png)
 
 De voorkeuren worden direct in deze browser bewaard; iedere stijl onthoudt zijn eigen kleuren. Je hoeft hiervoor geen YAML aan te passen. EQ-profielen en schuiven staan verder naar beneden en verschijnen alleen bij een daarvoor geconfigureerde versterker.
+
+### Wat er speelt: albumhoes en info
+
+Vanaf **2.2.0-beta.5** toont de kaart onder **Nu aan het spelen** de albumhoes en een knop **▶ Zoek videoclip op YouTube**.
+
+- Titel, artiest en album komen van de hoofdspeler. Meldt die niets (bijvoorbeeld een groep), dan van de speaker die speelt.
+- De albumhoes komt uit Home Assistant (zoals Music Assistant die aanlevert). Daarvoor gaat niets naar externe diensten.
+- De YouTube-knop opent alleen een zoekopdracht in een nieuw tabblad als je erop klikt.
+
+**Online info (optioneel, standaard uit):** zet onder **Kleuren & uiterlijk** het vinkje **Online info over het nummer** aan. Dan zoekt de kaart artiest, titel en album op bij MusicBrainz, Wikidata en Wikipedia en toont het jaar, een korte tekst over de artiest (Nederlands, anders Engels) en zo nodig een albumhoes van het Cover Art Archive. Met het vinkje uit gaat er niets naar die diensten. De instelling wordt per browser bewaard. Songteksten worden niet getoond (auteursrecht).
 
 ### Eigen equalizerprofielen opslaan
 
@@ -99,7 +109,7 @@ players:
 
 Bij een bestaande installatie: vervang de oude inline/lokale resource eenmalig door bovenstaande HACS-resource. Laad maar **één versie** van het JavaScript. Je oude `custom:louder-amplifier-card`-type, `boards`-configuratie en stijlvoorkeuren blijven werken. De oude bestandsnaam is behouden voor compatibiliteit. Gebruik voor nieuwe HACS-installaties het nieuwe GitHub-adres.
 
-Zonder HACS: plaats het releasebestand `louder-amplifier-card.js` in `/config/www/multiroom-audio-dashboard/`, registreer `/local/multiroom-audio-dashboard/louder-amplifier-card.js?v=2.2.0-beta.4` als module en herlaad. Een HA-herstart is niet nodig voor deze frontendresource.
+Zonder HACS: plaats het releasebestand `louder-amplifier-card.js` in `/config/www/multiroom-audio-dashboard/`, registreer `/local/multiroom-audio-dashboard/louder-amplifier-card.js?v=2.2.0-beta.5` als module en herlaad. Een HA-herstart is niet nodig voor deze frontendresource.
 
 ## Uiterlijk en bediening
 
