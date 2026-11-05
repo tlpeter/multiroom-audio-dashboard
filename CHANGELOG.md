@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.2.0-beta.5
+
+- Show now-playing info with album art from Home Assistant (`entity_picture`) and a YouTube search link. When the main entity has no metadata (e.g. a group), use the configured speaker that is playing. (#25)
+- Optional online track info, off by default and stored per browser: first release year and album from MusicBrainz, artist summary from Wikipedia via Wikidata (Dutch, English fallback) and a Cover Art Archive cover when HA has none. Rate limited, debounced, cached, time-limited and validated; attribution shown. No requests when off.
+
 ## 2.2.0-beta.4
 
 - Save the current 15-band EQ setting of a board as a named profile under **Mijn profielen** and apply it later with one click, also on another board with the same 15 bands. Saving sends no device commands. (#23)

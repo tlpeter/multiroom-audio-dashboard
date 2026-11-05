@@ -93,6 +93,58 @@ test('named profile controls fit a mobile viewport',async({page},testInfo)=>{
   await page.locator('.presets').screenshot({path:testInfo.outputPath('custom-profiles-mobile.png')});
 });
 
+test('now playing falls back to a playing speaker and makes no external requests by default',async({page},testInfo)=>{
+  const external=[];page.on('request',r=>{if(new URL(r.url()).hostname!=='127.0.0.1')external.push(r.url());});
+  await open(page);
+  await expect(page.locator('.np-info')).toBeVisible();
+  await expect(page.locator('#np-youtube')).toHaveAttribute('href','https://www.youtube.com/results?search_query=Louder%20Studio%20Demo%20track');
+  await expect(page.locator('#np-youtube')).toHaveAttribute('rel','noopener noreferrer');
+  await page.evaluate(()=>{const c=document.querySelector('louder-amplifier-card'),s=c.hass.states;
+    delete s['media_player.louder_speakers'].attributes.media_title;
+    s['media_player.speaker_links'].state='idle';
+    Object.assign(s['media_player.speaker_rechts'].attributes,{media_title:'Rechts speelt',media_artist:'Synthetische band',media_album_name:'Testplaat'});
+    c.hass={...c.hass};});
+  await expect(page.locator('#title')).toHaveText('Rechts speelt');
+  await expect(page.locator('#artist')).toHaveText('Synthetische band · Testplaat');
+  await expect(page.locator('#np-meta')).toHaveText('Testplaat');
+  await expect(page.locator('#np-bio')).toBeHidden();
+  await page.waitForTimeout(1600);
+  expect(external).toEqual([]);
+  await expect(page.locator('#commands')).toHaveText('Geen opdrachten.');
+  await page.locator('.np-info').screenshot({path:testInfo.outputPath('now-playing-basic.png')});
+});
+
+test('optional online info shows MusicBrainz and Wikipedia data with attribution',async({page},testInfo)=>{
+  const rec='11111111-2222-4333-8444-555555555555',art='99999999-8888-4777-8666-555555555555',rel='aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+  const hits=[];
+  await page.route(/^https:\/\/(musicbrainz\.org|www\.wikidata\.org|nl\.wikipedia\.org|coverartarchive\.org)\//,route=>{
+    const url=route.request().url();hits.push(url);
+    const json=body=>route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(body)});
+    if(url.includes('/ws/2/recording'))return json({recordings:[{id:rec,score:100,'first-release-date':'1987-05-04','artist-credit':[{artist:{id:art}}],releases:[{id:rel,title:'Synthetic test audio'}]}]});
+    if(url.includes('/ws/2/artist/'))return json({relations:[{url:{resource:'https://www.wikidata.org/wiki/Q42'}}]});
+    if(url.includes('wbgetentities'))return json({entities:{Q42:{sitelinks:{nlwiki:{title:'Louder Studio'}}}}});
+    if(url.includes('/page/summary/'))return json({extract:'Louder Studio is een fictieve testband.',content_urls:{desktop:{page:'https://nl.wikipedia.org/wiki/Louder_Studio'}}});
+    return route.fulfill({status:404,body:''});
+  });
+  await open(page);
+  await page.getByRole('checkbox',{name:'Online info over het nummer'}).check();
+  await expect(page.locator('#np-source')).toHaveText('Online info zoeken…');
+  await expect(page.locator('#np-bio')).toHaveText('Louder Studio is een fictieve testband.',{timeout:10000});
+  await expect(page.locator('#np-meta')).toHaveText('Synthetic test audio · 1987');
+  await expect(page.locator('#np-mb')).toHaveAttribute('href','https://musicbrainz.org/recording/'+rec);
+  await expect(page.locator('#np-wiki')).toHaveAttribute('href','https://nl.wikipedia.org/wiki/Louder_Studio');
+  await expect(page.locator('#np-source')).toContainText('Wikipedia (CC BY-SA)');
+  expect(hits.filter(u=>u.startsWith('https://musicbrainz.org/'))).toHaveLength(2);
+  await expect(page.locator('#commands')).toHaveText('Geen opdrachten.');
+  await page.locator('.np-info').screenshot({path:testInfo.outputPath('now-playing-online.png')});
+  await page.reload();await page.getByText('Kleuren & uiterlijk',{exact:true}).click();
+  await expect(page.getByRole('checkbox',{name:'Online info over het nummer'})).toBeChecked();
+  await page.setViewportSize({width:390,height:844});
+  await expect(page.locator('#np-bio')).toHaveText('Louder Studio is een fictieve testband.',{timeout:10000});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+  await page.locator('.np-info').screenshot({path:testInfo.outputPath('now-playing-mobile.png')});
+});
+
 test('all four styles fit a mobile viewport',async({page},testInfo)=>{
   await page.setViewportSize({width:390,height:844});await open(page);
   for(const skin of ['modern','retro','vintage','midnight']){

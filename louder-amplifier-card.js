@@ -1,4 +1,4 @@
-/* Multiroom Audio Dashboard v2.2.0-beta.4 — four styles, local colors and Music Assistant audio relay. */
+/* Multiroom Audio Dashboard v2.2.0-beta.5 — four styles, local colors and Music Assistant audio relay. */
 (() => {
   const TAG = 'multiroom-audio-dashboard';
   const LEGACY_TAG = 'louder-amplifier-card';
@@ -138,6 +138,9 @@
     nacht: {name:'Nacht', description:'Minder bas en zachter hoog', values:[-6,-5,-4,-3,-2,-1,0,0,1,1,1,0,-1,-2,-3]}
   };
   // Named user profiles: stored per HA user (frontend user data), browser storage only as fallback.
+  // Optional online track info (off by default): MusicBrainz, Wikidata, Wikipedia, Cover Art Archive.
+  const ONLINE_KEY='multiroom-audio-dashboard:online-info';
+  const MBID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
   const CUSTOM_KEY='multiroom-audio-dashboard:eq-presets',CUSTOM_MAX=24,CUSTOM_NAME_MAX=40;
   const BUILTIN_NAMES=new Set(Object.values(PRESETS).map(p=>p.name.toLowerCase()));
   const cleanName=(v)=>typeof v==='string'?v.trim().replace(/\s+/g,' '):'';
@@ -267,6 +270,7 @@
     }
     _select(id,label) { return `<label class="select-field"><span>${ESC(label)}</span><select aria-label="${ESC(label)}" data-entity="${ESC(id)}" data-kind="select" disabled></select></label>`; }
     _loadColors() {
+      try{this._online=localStorage.getItem(ONLINE_KEY)==='1';}catch{this._online=false;}
       this._skin='modern';this._visual='spectrum';this._source=this._cfg.preview?'demo':'live';this._themes={};this._colors={...PALETTES.lime};
       try{
         const saved=JSON.parse(localStorage.getItem('louder-studio:appearance:'+this._cfg.entity));
@@ -325,7 +329,7 @@
       this._q('canvas').insertAdjacentHTML('beforebegin',`<div class="analog-meters" hidden>${this._analogMeter('Links')}${this._analogMeter('Rechts')}</div>`);
       this._q('.foot').firstElementChild.lastChild.textContent=' De visualisatie toont de sfeer van het ontwerp, niet het gemeten geluid.';
       this._q('.foot').lastElementChild.textContent='Audiobron: Music Assistant · MilkDrop-relay.';
-      this._q('.top').insertAdjacentHTML('afterend',`<details class="appearance"><summary>Kleuren & uiterlijk</summary><div class="appearance-selects"><label>Stijl<select data-appearance="skin" aria-label="Stijl">${Object.entries(SKINS).map(([id,s])=>`<option value="${id}">${s.name}</option>`).join('')}</select></label><label>Visualisatie<select data-appearance="visual" aria-label="Visualisatie"><option value="spectrum">Spectrum</option><option value="analog">Analoge VU-meters</option></select></label></div><div class="appearance-grid">${[['accent','Accentkleur'],['peak','Spectrumtop / naald'],['background','Achtergrond'],['meter','Meterverlichting']].map(([key,label])=>`<label class="color-field"><span>${label}</span><input type="color" data-color="${key}" aria-label="${label}"><output data-color-out="${key}"></output></label>`).join('')}</div><div class="color-presets" role="group" aria-label="Kleurcombinaties">${Object.entries(PALETTES).map(([id,p])=>`<button data-act="palette" data-palette="${id}">${p.name}</button>`).join('')}</div><p class="color-note">Je stijl, visualisatie en kleuren worden op dit apparaat bewaard. Elke stijl onthoudt zijn eigen kleurkeuze.</p><p class="color-status" role="status" aria-live="polite"></p></details>`);
+      this._q('.top').insertAdjacentHTML('afterend',`<details class="appearance"><summary>Kleuren & uiterlijk</summary><div class="appearance-selects"><label>Stijl<select data-appearance="skin" aria-label="Stijl">${Object.entries(SKINS).map(([id,s])=>`<option value="${id}">${s.name}</option>`).join('')}</select></label><label>Visualisatie<select data-appearance="visual" aria-label="Visualisatie"><option value="spectrum">Spectrum</option><option value="analog">Analoge VU-meters</option></select></label></div><div class="appearance-grid">${[['accent','Accentkleur'],['peak','Spectrumtop / naald'],['background','Achtergrond'],['meter','Meterverlichting']].map(([key,label])=>`<label class="color-field"><span>${label}</span><input type="color" data-color="${key}" aria-label="${label}"><output data-color-out="${key}"></output></label>`).join('')}</div><div class="color-presets" role="group" aria-label="Kleurcombinaties">${Object.entries(PALETTES).map(([id,p])=>`<button data-act="palette" data-palette="${id}">${p.name}</button>`).join('')}</div><p class="color-note">Je stijl, visualisatie en kleuren worden op dit apparaat bewaard. Elke stijl onthoudt zijn eigen kleurkeuze.</p><label class="online-toggle"><input type="checkbox" data-online-info> Online info over het nummer</label><p class="online-note">Uit: er gaat niets naar externe diensten. Aan: artiest, titel en album worden opgezocht bij MusicBrainz, Wikidata en Wikipedia (albumjaar, korte tekst over de artiest, albumhoes als Home Assistant er geen heeft). Bewaard in deze browser.</p><p class="color-status" role="status" aria-live="polite"></p></details>`);
       this._q('.appearance-selects').insertAdjacentHTML('beforeend','<label>Databron<select data-appearance="source" aria-label="Databron"><option value="live">Live Music Assistant</option><option value="demo">Demo-animatie</option></select></label>');
       this._q('.demo-line').insertAdjacentHTML('afterend','<p class="level-note" hidden>Beide meters tonen hetzelfde mono-bronsignaal vóór de boardinstellingen; geen afzonderlijke meting van de speakeruitgangen.</p>');
       this._q('.color-presets').insertAdjacentHTML('beforeend','<button data-act="default-colors">Standaard voor deze stijl</button>');
@@ -373,9 +377,10 @@
       @media(max-width:620px){.board-body{grid-template-columns:98px minmax(0,1fr);gap:10px}.speaker-art{width:98px}.master-wrap{grid-template-columns:130px minmax(0,1fr);gap:8px}.nav button{font-size:11px;padding:10px 13px;min-height:40px}.master .small-caps{font-size:8px;letter-spacing:.6px}.section-line p{max-width:110px}.selects{gap:6px}}
       .presets{margin-top:15px;padding:14px;border:1px solid var(--line);border-radius:14px;background:#f8fbfc}.preset-heading{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted)}.preset-heading b{color:var(--ink)}.preset-buttons{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.preset-buttons button{min-height:38px;font-size:11px;padding:8px 13px}.preset-buttons button[aria-pressed=true]{background:#e0f4f3;border-color:#83c8c9;color:#127e87}.preset-description,.preset-message{font-size:11px;color:var(--muted);line-height:1.6;margin-top:9px}.preset-message{color:#127e87}.preset-message:empty{display:none}
       .custom-presets-wrap{margin-top:13px;padding-top:11px;border-top:1px dashed var(--line)}.custom-item{display:inline-flex;gap:3px}.custom-delete{min-width:36px;padding:8px 9px}.custom-empty{font-size:11px;color:var(--muted);align-self:center}.custom-save{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.custom-save input{flex:1 1 180px;min-width:0;min-height:38px;padding:0 11px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:12px;background:transparent;color:var(--ink)}.custom-save button{min-height:38px;font-size:11px}
+      .np-info{display:flex;gap:14px;align-items:flex-start;margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:14px}.np-info[hidden]{display:none}.np-art{width:96px;height:96px;border-radius:10px;object-fit:cover;flex-shrink:0;background:var(--line)}.np-art[hidden]{display:none}.np-text{min-width:0;flex:1;font-size:12px;line-height:1.5}.np-meta{font-weight:600;color:var(--ink);overflow-wrap:anywhere}.np-meta:empty{display:none}.np-bio{margin:6px 0 0;color:var(--muted);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}.np-bio:empty{display:none}.np-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.np-links a{font-size:11px;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:5px 10px;text-decoration:none}.np-links a[hidden]{display:none}.np-source{display:block;margin-top:6px;font-size:10px;color:var(--muted)}.np-source:empty{display:none}.online-toggle{display:flex;gap:8px;align-items:center;margin-top:14px;font-size:12px;color:var(--ink)}.online-note{font-size:11px;color:var(--muted);margin:4px 0 0;line-height:1.5}@media(max-width:500px){.np-art{width:64px;height:64px}}
       @media(prefers-reduced-motion:reduce){.playing .cone{animation:none}}
       </style><main class="studio"><header class="top"><div class="brand"><div class="brandmark">≋</div><div><div class="eyebrow">Jouw geluid. Jouw instelling.</div><h1>Multiroom Audio Dashboard</h1><p class="subline">${c.boards.length} speler${c.boards.length===1?'':'s'} · jouw geluid</p></div></div><nav class="nav"><button class="manage-speakers" data-act="manage-speakers" aria-label="Speakers beheren">⚙ Speakers beheren</button><a href="/lovelace/home" data-nav>⌂ Home</a><button data-act="more-group">Speler openen ↗</button></nav></header><p class="speaker-access-note" role="status" aria-live="polite"></p>
-      <div class="overview"><section class="card card-pad"><div class="row"><span class="eyebrow">Nu aan het spelen</span><span class="pill" id="group-state"></span></div><div class="screen"><div class="monitor-meta"><div class="track-icon">♫</div><div class="track"><strong id="title">Even verbinden…</strong><small id="artist">Louder-speakers</small></div><span class="time" id="time">—</span></div><canvas class="spectrum" aria-label="Spectrumdemo; geen meting van het audiosignaal"></canvas><div class="freq"><span>32 Hz</span><span>125</span><span>500</span><span>2k</span><span>8k</span><span>16k</span></div><div class="demo-line"><span>Spectrumdemo · geen live-audioanalyse</span><label><input type="checkbox" id="demo" checked> Animatie</label></div></div><div class="transport"><button data-act="media_previous_track" aria-label="Vorige track">⏮</button><button data-act="media_play_pause" class="play" aria-label="Afspelen of pauzeren" id="play">Ⅱ</button><button data-act="media_next_track" aria-label="Volgende track">⏭</button><button data-act="more-group" aria-label="Speler en wachtrij">☷</button></div></section>
+      <div class="overview"><section class="card card-pad"><div class="row"><span class="eyebrow">Nu aan het spelen</span><span class="pill" id="group-state"></span></div><div class="screen"><div class="monitor-meta"><div class="track-icon">♫</div><div class="track"><strong id="title">Even verbinden…</strong><small id="artist">Louder-speakers</small></div><span class="time" id="time">—</span></div><canvas class="spectrum" aria-label="Spectrumdemo; geen meting van het audiosignaal"></canvas><div class="freq"><span>32 Hz</span><span>125</span><span>500</span><span>2k</span><span>8k</span><span>16k</span></div><div class="demo-line"><span>Spectrumdemo · geen live-audioanalyse</span><label><input type="checkbox" id="demo" checked> Animatie</label></div></div><div class="transport"><button data-act="media_previous_track" aria-label="Vorige track">⏮</button><button data-act="media_play_pause" class="play" aria-label="Afspelen of pauzeren" id="play">Ⅱ</button><button data-act="media_next_track" aria-label="Volgende track">⏭</button><button data-act="more-group" aria-label="Speler en wachtrij">☷</button></div><div class="np-info" hidden><img class="np-art" alt="" hidden><div class="np-text"><div class="np-meta" id="np-meta"></div><p class="np-bio" id="np-bio"></p><div class="np-links"><a id="np-youtube" target="_blank" rel="noopener noreferrer">▶ Zoek videoclip op YouTube</a><a id="np-mb" target="_blank" rel="noopener noreferrer" hidden>MusicBrainz</a><a id="np-wiki" target="_blank" rel="noopener noreferrer" hidden>Wikipedia</a></div><small class="np-source" id="np-source"></small></div></div></section>
       <section class="card card-pad master"><div class="row"><span class="eyebrow">Master volume</span><span class="small-caps">HOOFDSPELER</span></div><div class="master-wrap"><div class="dial" id="dial"><div class="dial-inner"><b id="master-value">—</b><small>VOLUME %</small></div></div><div>${this._range(c.entity,'Groepsvolume','volume')}<button class="mute-master" data-act="mute-group" id="mute-group">Geluid dempen</button><p class="master-note">Bedient de ingestelde hoofdspeler.<br>Elke speaker is ook apart instelbaar.</p></div></div></section></div>
       <div class="section-line"><h2>Je speakers</h2><p>Live bediening via Home Assistant</p></div><div class="boards">${c.boards.map((b,i)=>`<section class="card card-pad" id="board-${i}"><div class="row board-head"><div><div class="eyebrow">${b.bands.length?'Versterker · ':'Speaker · '}${i+1}</div><h3>${ESC(b.name)}</h3></div><span class="pill" data-status="${i}">—</span></div><div class="board-body">${this._speaker(i)}<div>${this._range(b.player,'Afspeelvolume','volume')}<div class="board-buttons"><button data-act="mute" data-board="${i}" id="mute-${i}">Dempen</button><button data-act="more" data-board="${i}">Speler ↗</button></div><div class="selects">${b.eq?this._select(b.eq,'Equalizer'):''}${b.mixer?this._select(b.mixer,'Kanaalmix'):''}</div></div></div>${this._playerControls(b.player)}<div class="sensors"><span class="sensor">CPU <b id="temp-${i}">—</b></span><span class="sensor">WiFi <b id="wifi-${i}">—</b></span><span class="sensor" id="fault-${i}">Status <b>—</b></span><button data-act="led" data-board="${i}" aria-label="LED van ${ESC(b.name)}" style="font-size:10px;min-height:30px;padding:5px 9px">LED ↗</button><button data-act="fan" data-board="${i}" aria-label="Koeling van ${ESC(b.name)}" style="font-size:10px;min-height:30px;padding:5px 9px">Koeling ↗</button></div></section>`).join('')}</div>
       <section class="card card-pad eq"><div class="row eq-head"><div><span class="eyebrow">Fijnafstelling</span><h2>15-bands equalizer</h2></div><div class="eq-tools"><div class="tabs">${c.boards.map((b,i)=>`<button data-act="tab" data-board="${i}" aria-pressed="${i===this._tab}">${ESC(b.name)}</button>`).join('')}</div><button data-act="flat">Vlak · 0 dB</button></div></div><p class="eq-intro" id="eq-description"></p><div class="eq-scroll"><div class="eq-bands" id="bands"></div></div><div class="eq-axis"><span>Laag · bas</span><span>Midden</span><span>Hoog · detail</span></div><details class="advanced"><summary>Uitgangstrim van dit board · dB</summary><div class="trim-grid" id="trims"></div><p class="eq-intro">Kanaal 1 en 2 zijn de fysieke uitgangen van het geselecteerde board.</p></details></section>
@@ -392,6 +397,104 @@
       this._q('#eq-description').textContent=b.name+' · de 15 beschikbare EQ-banden van je firmware. Op een telefoon kun je horizontaal door de banden vegen.';
       this._all('[data-act=tab]').forEach(el=>el.setAttribute('aria-pressed',Number(el.dataset.board)===this._tab));
       this._q('.preset-message').textContent='';
+    }
+    _nowPlaying() {
+      // Main entity first; a group without metadata falls back to a configured speaker that plays.
+      const main=this._st(this._cfg.entity);
+      if(main?.attributes?.media_title)return {id:this._cfg.entity,st:main};
+      const ids=this._cfg.boards.map(b=>b.player).filter(id=>this._st(id)?.attributes?.media_title);
+      const id=ids.find(x=>this._st(x).state==='playing')||ids.find(x=>this._st(x).state==='paused');
+      return id?{id,st:this._st(id)}:{id:this._cfg.entity,st:main};
+    }
+    _artUrl(st) {
+      const pic=st?.attributes?.entity_picture;
+      if(typeof pic!=='string'||!pic)return null;
+      if(/^\/(?!\/)/.test(pic))return typeof this._hass?.hassUrl==='function'?this._hass.hassUrl(pic):pic;
+      return /^https?:\/\//i.test(pic)?pic:null;
+    }
+    _setOnline(on) {
+      this._online=!!on;
+      try{localStorage.setItem(ONLINE_KEY,this._online?'1':'0');}catch{}
+      this._npKey=null;this._syncNowPlaying();
+    }
+    _syncNowPlaying() {
+      const box=this._q('.np-info');if(!box)return;
+      const toggle=this._q('[data-online-info]');if(toggle&&this.shadowRoot?.activeElement!==toggle)toggle.checked=!!this._online;
+      const st=this._nowPlaying()?.st,a=st?.attributes||{},title=typeof a.media_title==='string'?a.media_title.trim():'';
+      const artist=typeof a.media_artist==='string'?a.media_artist.trim():'',album=typeof a.media_album_name==='string'?a.media_album_name.trim():'';
+      if(!title){box.hidden=true;return;}
+      box.hidden=false;
+      const key=[artist,title,album].join('\u241f').toLowerCase();
+      this._npCache??=new Map();
+      const info=this._online?this._npCache.get(key):null;
+      if(this._online&&key!==this._npKey){
+        this._npKey=key;clearTimeout(this._npTimer);
+        if(!this._npCache.has(key))this._npTimer=setTimeout(()=>this._lookupTrack(key,artist,title,album).then(()=>{if(this._npKey===key)this._syncNowPlaying();}),1200);
+      }
+      this._q('#np-meta').textContent=[album||info?.album,info?.year].filter(Boolean).join(' · ');
+      const art=this._q('.np-art'),src=this._artUrl(st)||(info?.releaseId?'https://coverartarchive.org/release/'+info.releaseId+'/front-250':null);
+      if(art){
+        if(!src){art.hidden=true;art.removeAttribute?.('src');art.dataset.src='';}
+        else if(art.dataset.src!==src){art.dataset.src=src;art.hidden=false;art.onerror=()=>{art.hidden=true;};art.src=src;}
+      }
+      this._q('#np-youtube').href='https://www.youtube.com/results?search_query='+encodeURIComponent([artist,title].filter(Boolean).join(' '));
+      this._q('#np-bio').textContent=info?.bio||'';
+      const mb=this._q('#np-mb'),wiki=this._q('#np-wiki');
+      mb.hidden=!info?.recordingUrl;if(info?.recordingUrl)mb.href=info.recordingUrl;
+      wiki.hidden=!info?.wikiUrl;if(info?.wikiUrl)wiki.href=info.wikiUrl;
+      this._q('#np-source').textContent=!this._online?'':!info?'Online info zoeken…':info.bio?'Tekst: Wikipedia (CC BY-SA) · gegevens: MusicBrainz':info.recordingUrl?'Gegevens: MusicBrainz':'Geen online info gevonden.';
+    }
+    async _fetchJson(url) {
+      const ctrl=typeof AbortController==='function'?new AbortController():null,timer=setTimeout(()=>ctrl?.abort(),8000);
+      try{
+        const res=await fetch(url,{headers:{Accept:'application/json'},credentials:'omit',referrerPolicy:'no-referrer',signal:ctrl?.signal});
+        if(!res.ok)throw Error('HTTP '+res.status);
+        return await res.json();
+      }finally{clearTimeout(timer);}
+    }
+    async _mbFetch(path) {
+      // MusicBrainz allows about one request per second per client.
+      const wait=Math.max(0,(this._mbNext||0)-Date.now());this._mbNext=Date.now()+wait+1100;
+      if(wait)await new Promise(done=>setTimeout(done,wait));
+      return this._fetchJson('https://musicbrainz.org/ws/2/'+path);
+    }
+    async _lookupTrack(key,artist,title,album) {
+      this._npCache??=new Map();
+      if(this._npCache.has(key))return this._npCache.get(key);
+      const result={},clean=v=>v.replace(/["\\]/g,' ').trim();
+      try{
+        const query='recording:"'+clean(title)+'"'+(artist?' AND artist:"'+clean(artist)+'"':'');
+        const data=await this._mbFetch('recording?query='+encodeURIComponent(query)+'&limit=5&fmt=json');
+        const rec=(Array.isArray(data?.recordings)?data.recordings:[]).find(x=>Number(x?.score)>=80);
+        if(rec){
+          if(MBID.test(rec.id||''))result.recordingUrl='https://musicbrainz.org/recording/'+rec.id;
+          const year=/^\d{4}/.exec(String(rec['first-release-date']||''))?.[0];if(year)result.year=year;
+          const rels=Array.isArray(rec.releases)?rec.releases:[];
+          const rel=rels.find(x=>album&&String(x?.title||'').toLowerCase()===album.toLowerCase())||rels.find(x=>x?.['release-group']?.['primary-type']==='Album')||rels[0];
+          if(rel){if(typeof rel.title==='string')result.album=rel.title.slice(0,200);if(MBID.test(rel.id||''))result.releaseId=rel.id;}
+          const artistId=rec['artist-credit']?.[0]?.artist?.id;
+          if(MBID.test(artistId||'')){
+            const art=await this._mbFetch('artist/'+artistId+'?inc=url-rels&fmt=json');
+            const wd=(Array.isArray(art?.relations)?art.relations:[]).map(x=>/^https:\/\/www\.wikidata\.org\/wiki\/(Q\d+)$/.exec(String(x?.url?.resource||''))?.[1]).find(Boolean);
+            if(wd){
+              const w=await this._fetchJson('https://www.wikidata.org/w/api.php?action=wbgetentities&ids='+wd+'&props=sitelinks&sitefilter=nlwiki%7Cenwiki&format=json&origin=*');
+              const links=w?.entities?.[wd]?.sitelinks||{};
+              for(const [site,lang] of [['nlwiki','nl'],['enwiki','en']]){
+                const page=links[site]?.title;if(typeof page!=='string'||!page)continue;
+                const sum=await this._fetchJson('https://'+lang+'.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(page.replaceAll(' ','_')));
+                if(typeof sum?.extract!=='string'||!sum.extract.trim())continue;
+                result.bio=sum.extract.trim().slice(0,600);
+                const url=sum.content_urls?.desktop?.page;
+                if(typeof url==='string'&&url.startsWith('https://'+lang+'.wikipedia.org/wiki/'))result.wikiUrl=url;
+                break;
+              }
+            }
+          }
+        }
+      }catch{result.error=true;}
+      this._npCache.set(key,result);
+      if(this._npCache.size>50)this._npCache.delete(this._npCache.keys().next().value);
+      return result;
     }
     async _loadCustomPresets() {
       let raw=null,store='local';
@@ -521,6 +624,7 @@
     async _change(e) {
       const el=e.target;
       if(el.dataset.color)return;
+      if(el.dataset.onlineInfo!==undefined){this._setOnline(el.checked);return;}
       if(el.dataset.appearance==='skin'){this._setSkin(el.value);return;}
       if(el.dataset.appearance==='visual'){if(['spectrum','analog'].includes(el.value)){this._visual=el.value;this._applyColors(true);}return;}
       if(el.dataset.appearance==='source'){if(['live','demo'].includes(el.value)){this._source=el.value;this._stopLive();this._liveRetryAt=0;this._applyColors(true);}return;}
@@ -647,8 +751,10 @@
       if(!this._cfg || !this._q('#title'))return;
       const g=this._st(this._cfg.entity),attrs=g?.attributes||{},playing=g?.state==='playing';
       const manage=this._q('[data-act=manage-speakers]');manage.disabled=this._hass?.user?.is_admin!==true;manage.title=manage.disabled?'Beheerder nodig om speakers te kiezen':'Kies speakers en hoofdspeler';
-      this._q('#title').textContent=attrs.media_title||'Kies je muziek';
-      this._q('#artist').textContent=[attrs.media_artist,attrs.media_album_name].filter(Boolean).join(' · ')||attrs.friendly_name||'Je speakers';
+      const np=this._nowPlaying()?.st?.attributes||attrs;
+      this._q('#title').textContent=np.media_title||'Kies je muziek';
+      this._q('#artist').textContent=[np.media_artist,np.media_album_name].filter(Boolean).join(' · ')||attrs.friendly_name||'Je speakers';
+      this._syncNowPlaying();
       this._q('#group-state').textContent=playing?'● SPEELT':['paused','idle'].includes(g?.state)?'GEREED':'NIET VERBONDEN';
       this._q('#group-state').classList.toggle('dim',!playing);
       this._q('#play').textContent=playing?'Ⅱ':'▶';
@@ -746,7 +852,7 @@
             }
           }
         }
-        const p=this._st(this._cfg.entity),a=p?.attributes||{};
+        const p=this._nowPlaying()?.st,a=p?.attributes||{};
         const elapsed=(a.media_position||0)+(p?.state==='playing'&&a.media_position_updated_at?Math.max(0,(Date.now()-Date.parse(a.media_position_updated_at))/1000):0);
         const mm=(s)=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
         this._q('#time').textContent=Number.isFinite(a.media_duration)?mm(Math.min(a.media_duration,elapsed))+' / '+mm(a.media_duration):'LIVE';
