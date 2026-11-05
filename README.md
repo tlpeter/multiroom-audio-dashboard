@@ -4,7 +4,7 @@ Home Assistant-audiobediening met vier instelbare stijlen, spectrum of analoge b
 
 **Status: 2.2.0-beta.6.** Automatisch getest met fictieve HA-statussen en PCM-audio. Praktijktests per speaker/integratie staan nog open. GitHub kan geen apparaten bij jou thuis testen. Deze repository installeert niets automatisch in Home Assistant.
 
-Snel naar: [Kleuren en stijl](#waar-stel-ik-dit-in) · [Andere speakers kiezen](#andere-slimme-speakers-toevoegen) · [Installeren via HACS](#installeren-via-hacs).
+Snel naar: [Kleuren en stijl](#waar-stel-ik-dit-in) · [Andere speakers kiezen](#andere-slimme-speakers-toevoegen) · [Installeren via de Marketplace](#installeren-via-de-marketplace).
 
 ## Zo ziet het eruit
 
@@ -28,20 +28,25 @@ De beelden hieronder zijn screenshots van de werkende kaart met fictieve spelers
 
 ## Waar stel ik dit in?
 
-**De instellingen zitten in de dashboardkaart zelf. HACS gebruik je om de kaart te installeren en bij te werken.**
+**De instellingen zitten in de dashboardkaart zelf. Via Instellingen → Marketplace (voorheen HACS) installeer en update je de kaart.**
 
 1. Open je bestaande Home Assistant-dashboard met deze kaart.
 2. Klap **Kleuren & uiterlijk** uit, direct onder de titel.
 3. Kies de **Stijl**, **Visualisatie** (spectrum of analoge VU-meters) en **Databron** (Live Music Assistant of Demo).
 4. Stel **Accentkleur**, **Spectrumtop / naald**, **Achtergrond** en **Meterverlichting** in, of kies een kleurcombinatie.
+5. Optioneel: zet **Online info over het nummer** aan (zie [Wat er speelt](#wat-er-speelt-albumhoes-en-info)).
 
-![Kleuren en uiterlijk: stijl, visualisatie, databron, vier kleurvelden en kleurcombinaties](https://raw.githubusercontent.com/tlpeter/multiroom-audio-dashboard/main/docs/images/appearance-settings.png)
+![Kleuren en uiterlijk: stijl, visualisatie, databron, vier kleurvelden, kleurcombinaties en het vinkje Online info over het nummer](https://raw.githubusercontent.com/tlpeter/multiroom-audio-dashboard/main/docs/images/appearance-settings.png)
 
 De voorkeuren worden direct in deze browser bewaard; iedere stijl onthoudt zijn eigen kleuren. Je hoeft hiervoor geen YAML aan te passen. EQ-profielen en schuiven staan verder naar beneden en verschijnen alleen bij een daarvoor geconfigureerde versterker.
 
 ### Wat er speelt: albumhoes en info
 
 Vanaf **2.2.0-beta.5** toont de kaart onder **Nu aan het spelen** de albumhoes en een knop **▶ Zoek videoclip op YouTube**.
+
+![Nu aan het spelen: titel, albumhoes, jaar, korte artiesttekst van Wikipedia en knoppen naar YouTube, MusicBrainz en Wikipedia](https://raw.githubusercontent.com/tlpeter/multiroom-audio-dashboard/main/docs/images/now-playing.png)
+
+*Voorbeeld met fictieve gegevens en online info aan. Met online info uit zie je alleen titel, albumhoes en de YouTube-knop.*
 
 - Titel, artiest en album komen van de hoofdspeler. Meldt die niets (bijvoorbeeld een groep), dan van de speaker die speelt.
 - De albumhoes komt uit Home Assistant (zoals Music Assistant die aanlevert). Daarvoor gaat niets naar externe diensten.
@@ -53,6 +58,8 @@ Vanaf **2.2.0-beta.5** toont de kaart onder **Nu aan het spelen** de albumhoes e
 
 Vanaf **2.2.0-beta.4** kun je een eigen EQ-instelling bewaren onder een naam:
 
+![Equalizer met standaardprofielen, Mijn profielen met het opgeslagen profiel Avond en de 15 EQ-schuiven](https://raw.githubusercontent.com/tlpeter/multiroom-audio-dashboard/main/docs/images/eq-profiles.png)
+
 1. Kies in de equalizer het board (bijvoorbeeld **Links**) en zet de schuiven zoals je wilt.
 2. Typ onder **Mijn profielen** een naam, bijvoorbeeld *Avond*, en klik op **Huidige instelling opslaan** (of druk op Enter).
 3. Je profiel verschijnt als knop. Klik erop om het later weer toe te passen, op hetzelfde of een ander board met 15 banden.
@@ -60,11 +67,11 @@ Vanaf **2.2.0-beta.4** kun je een eigen EQ-instelling bewaren onder een naam:
 - Opslaan leest alleen de huidige stand; er wordt niets naar de speaker gestuurd.
 - Dezelfde naam nog eens opslaan werkt het profiel bij. Namen van standaardprofielen (Bas, Disco, …) zijn niet toegestaan. Maximaal 24 profielen, namen tot 40 tekens.
 - Verwijderen: klik op **×** en daarna binnen 5 seconden op **Verwijderen?**.
-- De profielen worden bewaard in je **Home Assistant-gebruikersaccount**, dus ze zijn er ook op je telefoon of tablet als je met dezelfde HA-gebruiker inlogt. Een andere HA-gebruiker (bijvoorbeeld een wandtablet met een eigen account) ziet ze niet.
+- De profielen worden bewaard in je **Home Assistant-gebruikersaccount** (in het lokale voorbeeld hierboven: in de browser), dus ze zijn er ook op je telefoon of tablet als je met dezelfde HA-gebruiker inlogt. Een andere HA-gebruiker (bijvoorbeeld een wandtablet met een eigen account) ziet ze niet.
 
 ### Andere slimme speakers toevoegen
 
-HACS zoekt geen speakers op je netwerk. Voeg een speaker eerst via zijn passende integratie toe aan Home Assistant, zodat hij daar als `media_player` beschikbaar is.
+De Marketplace zoekt geen speakers op je netwerk. Voeg een speaker eerst via zijn passende integratie toe aan Home Assistant, zodat hij daar als `media_player` beschikbaar is.
 
 Vanaf **2.2.0-beta.3** kun je zonder YAML spelers kiezen:
 
@@ -85,19 +92,18 @@ Vanaf **2.2.0-beta.6** zoekt de kaart bij een gekozen speaker zelf de bijbehoren
 - Uitzetten kan met `auto_entities: false` in de kaartconfiguratie.
 - Er worden geen luidsprekers automatisch gegroepeerd.
 
-Zie je **Kleuren & uiterlijk** niet? Controleer of het dashboard de nieuwe HACS-resource laadt en herlaad de browser volledig. Volg hieronder de stappen voor een bestaande installatie; je hoeft je dashboard niet opnieuw te maken.
+Zie je **Kleuren & uiterlijk** niet? Controleer of het dashboard de Marketplace-resource laadt en herlaad de browser volledig. Volg hieronder de stappen voor een bestaande installatie; je hoeft je dashboard niet opnieuw te maken.
 
-### Plaatjes bekijken in HACS
+## Installeren via de Marketplace
 
-Open in HACS de detailpagina van **Multiroom Audio Dashboard**. De repository gebruikt `render_readme: true`, zodat de README daar wordt weergegeven. HACS haalt de documentatie op voor de geïnstalleerde of geselecteerde versie: kies **2.2.0-beta.3 of nieuwer** voor deze geïllustreerde uitleg. De afbeeldingen hebben volledige HTTPS-adressen en vereisen geen GitHub-login. Als oude informatie blijft staan, kies **Update information / Informatie bijwerken** in het repositorymenu en open de detailpagina opnieuw. Voor het laden van de plaatjes moet je browser GitHub Raw kunnen bereiken. Zie de [HACS-documentatie](https://www.hacs.dev/docs/publish/start/) en [versiekeuze in de HACS-broncode](https://github.com/hacs/integration/blob/main/custom_components/hacs/repositories/base.py).
+Sinds Home Assistant **2026.11** is HACS ingebouwd als **Marketplace**. Alleen een beheerder kan die openen.
 
-## Installeren via HACS
-
-1. Open HACS → menu → **Aangepaste repositories**.
-2. Voeg `https://github.com/tlpeter/multiroom-audio-dashboard` toe als type **Dashboard**.
-3. Download Multiroom Audio Dashboard. Kies bij versie-selectie beta's als je deze prerelease wilt gebruiken.
-4. Controleer de dashboardresource: `/hacsfiles/multiroom-audio-dashboard/louder-amplifier-card.js`, type JavaScript-module. Herlaad de browser volledig.
-5. Voeg een handmatige kaart toe met je eigen entiteiten:
+1. Ga naar **Instellingen → Marketplace**. Accepteer de eerste keer de waarschuwing over community-inhoud.
+2. Kies rechtsboven **Add from link** (toevoegen via link) en vul `tlpeter/multiroom-audio-dashboard` in. De Marketplace vraagt je zo nodig eerst GitHub te koppelen. Kies als type een dashboardkaart als daarom gevraagd wordt.
+3. Open **Multiroom Audio Dashboard** in de lijst en kies **Install**. Controleer de versie en kies nogmaals **Install**.
+4. **Beta-versies:** standaard biedt de Marketplace alleen stabiele versies. Wil je een beta zoals deze, ga dan naar **Instellingen → Apparaten & diensten → Marketplace**, open het apparaat **Multiroom Audio Dashboard**, schakel de entiteit **Pre-release** in en zet de schakelaar aan. Een andere versie kiezen kan ook via ⋮ → **Install another version**.
+5. De kaart wordt geïnstalleerd in `www/community/` en als resource toegevoegd: `/local/community/multiroom-audio-dashboard/louder-amplifier-card.js` (JavaScript-module). Beheer je resources in YAML, voeg die regel dan zelf toe; het installatievenster toont hem. Herlaad daarna de browser volledig.
+6. Voeg een kaart toe met je eigen spelers, of kies ze later met **⚙ Speakers beheren**:
 
 ```yaml
 type: custom:multiroom-audio-dashboard
@@ -111,9 +117,13 @@ players:
 
 `entity` is de expliciete hoofdspeler of bestaande groep. `players` bevat 1–32 individuele spelers. Zonder `players` toont de kaart alleen de hoofdspeler. De kaart maakt zelf geen groep en verandert geen volume of afspeelstatus bij openen.
 
-Bij een bestaande installatie: vervang de oude inline/lokale resource eenmalig door bovenstaande HACS-resource. Laad maar **één versie** van het JavaScript. Je oude `custom:louder-amplifier-card`-type, `boards`-configuratie en stijlvoorkeuren blijven werken. De oude bestandsnaam is behouden voor compatibiliteit. Gebruik voor nieuwe HACS-installaties het nieuwe GitHub-adres.
+**Updates** verschijnen onder **Instellingen → Updates**. De Marketplace controleert eigen repositories ongeveer elke 48 uur (met gekoppelde GitHub). Herlaad na een update de browser.
 
-Zonder HACS: plaats het releasebestand `louder-amplifier-card.js` in `/config/www/multiroom-audio-dashboard/`, registreer `/local/multiroom-audio-dashboard/louder-amplifier-card.js?v=2.2.0-beta.6` als module en herlaad. Een HA-herstart is niet nodig voor deze frontendresource.
+**Bestaande installatie van vóór 2026.11:** je HACS-installatie, eigen repositories en update-entiteiten zijn automatisch meegenomen naar de Marketplace. De oude resource `/hacsfiles/multiroom-audio-dashboard/louder-amplifier-card.js` blijft werken. Laad maar **één versie** van het JavaScript: verwijder een oude inline/lokale resource als je die nog hebt. Je oude `custom:louder-amplifier-card`-type, `boards`-configuratie en stijlvoorkeuren blijven werken; de oude bestandsnaam is behouden voor compatibiliteit.
+
+**Oudere Home Assistant (vóór 2026.11):** voeg de repository in HACS toe via menu → **Aangepaste repositories**, type **Dashboard**, en installeer daar.
+
+Zonder Marketplace: plaats het releasebestand `louder-amplifier-card.js` in `/config/www/multiroom-audio-dashboard/`, registreer `/local/multiroom-audio-dashboard/louder-amplifier-card.js?v=2.2.0-beta.6` als module en herlaad. Een HA-herstart is niet nodig voor deze frontendresource.
 
 ## Uiterlijk en bediening
 
@@ -159,4 +169,6 @@ De neutrale naam beschrijft het project. Dit is geen officieel product van een s
 - [Relayprotocol MA 2.10.8](https://github.com/music-assistant/server/blob/2.10.8/music_assistant/providers/milkdrop_visualizer/relay.py)
 - [Audioverwerking](https://github.com/music-assistant/server/blob/2.10.8/music_assistant/providers/milkdrop_visualizer/tap.py)
 - [HA-ingress](https://github.com/home-assistant/frontend/blob/20260930.5/src/data/hassio/ingress.ts)
-- [HACS custom repositories](https://www.hacs.dev/docs/faq/custom_repositories/)
+- [Home Assistant Marketplace](https://www.home-assistant.io/integrations/marketplace/)
+- [HACS en de Marketplace](https://hacs.xyz/docs/marketplace/)
+- [Marketplace: repositorystructuur](https://contributors.home-assistant.io/marketplace/reference/repository-structure/)
