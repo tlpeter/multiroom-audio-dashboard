@@ -161,6 +161,21 @@ test('speakers chosen without YAML get their own device EQ from the HA registry'
   await expect(page.locator('select[data-entity="select.speaker_links_mixer_mode"]')).toHaveCount(1);
 });
 
+test('Sendspin track sensors fill now playing when the player has no metadata',async({page})=>{
+  await open(page);
+  await page.evaluate(()=>{const c=document.querySelector('louder-amplifier-card'),s=c.hass.states,entities={};
+    const add=(id,state)=>{s[id]={entity_id:id,state,attributes:{}};};
+    add('sensor.speaker_links_track_title','Viva house');add('sensor.speaker_links_artist','Synthetische artiest');add('sensor.speaker_links_album','Testalbum vol. 6');
+    for(const id of ['media_player.louder_speakers','media_player.speaker_links','media_player.speaker_rechts']){delete s[id].attributes.media_title;delete s[id].attributes.media_artist;delete s[id].attributes.media_album_name;}
+    for(const id of Object.keys(s)){const dev=id.includes('speaker_links')?'dev-links':id.includes('speaker_rechts')?'dev-rechts':null;if(dev)entities[id]={entity_id:id,device_id:dev};}
+    c.hass={...c.hass,entities};});
+  await expect(page.locator('#title')).toHaveText('Viva house');
+  await expect(page.locator('#artist')).toHaveText('Synthetische artiest · Testalbum vol. 6');
+  await expect(page.locator('#np-meta')).toHaveText('Testalbum vol. 6');
+  await expect(page.locator('#np-youtube')).toHaveAttribute('href','https://www.youtube.com/results?search_query=Synthetische%20artiest%20Viva%20house');
+  await expect(page.locator('#commands')).toHaveText('Geen opdrachten.');
+});
+
 test('all four styles fit a mobile viewport',async({page},testInfo)=>{
   await page.setViewportSize({width:390,height:844});await open(page);
   for(const skin of ['modern','retro','vintage','midnight']){

@@ -1,6 +1,6 @@
 {
   "name": "multiroom-audio-dashboard",
-  "version": "2.2.0-beta.6",
+  "version": "2.2.0-beta.7",
   "private": true,
   "description": "Home Assistant audio dashboard with selectable styles and Music Assistant visualization",
   "engines": {

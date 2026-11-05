@@ -2,7 +2,7 @@
 
 Home Assistant-audiobediening met vier instelbare stijlen, spectrum of analoge bronmeters, eigen kleuren en optionele equalizerbediening. Voorheen Louder Studio Card.
 
-**Status: 2.2.0-beta.6.** Automatisch getest met fictieve HA-statussen en PCM-audio. Praktijktests per speaker/integratie staan nog open. GitHub kan geen apparaten bij jou thuis testen. Deze repository installeert niets automatisch in Home Assistant.
+**Status: 2.2.0-beta.7.** Automatisch getest met fictieve HA-statussen en PCM-audio. Praktijktests per speaker/integratie staan nog open. GitHub kan geen apparaten bij jou thuis testen. Deze repository installeert niets automatisch in Home Assistant.
 
 Snel naar: [Kleuren en stijl](#waar-stel-ik-dit-in) · [Andere speakers kiezen](#andere-slimme-speakers-toevoegen) · [Installeren via de Marketplace](#installeren-via-de-marketplace).
 
@@ -49,6 +49,7 @@ Vanaf **2.2.0-beta.5** toont de kaart onder **Nu aan het spelen** de albumhoes e
 *Voorbeeld met fictieve gegevens en online info aan. Met online info uit zie je alleen titel, albumhoes en de YouTube-knop.*
 
 - Titel, artiest en album komen van de hoofdspeler. Meldt die niets (bijvoorbeeld een groep), dan van de speaker die speelt.
+- Sendspin-spelers (zoals de Louder-ESP32 met Sendspin-firmware) geven de titel niet via de mediaspeler door, maar via de sensoren **Track Title**, **Artist** en **Album** van hetzelfde apparaat. Vanaf **2.2.0-beta.7** gebruikt de kaart die automatisch. Een albumhoes geven deze sensoren niet; die komt dan alleen via online info (Cover Art Archive).
 - De albumhoes komt uit Home Assistant (zoals Music Assistant die aanlevert). Daarvoor gaat niets naar externe diensten.
 - De YouTube-knop opent alleen een zoekopdracht in een nieuw tabblad als je erop klikt.
 
@@ -123,7 +124,7 @@ players:
 
 **Oudere Home Assistant (vóór 2026.11):** voeg de repository in HACS toe via menu → **Aangepaste repositories**, type **Dashboard**, en installeer daar.
 
-Zonder Marketplace: plaats het releasebestand `louder-amplifier-card.js` in `/config/www/multiroom-audio-dashboard/`, registreer `/local/multiroom-audio-dashboard/louder-amplifier-card.js?v=2.2.0-beta.6` als module en herlaad. Een HA-herstart is niet nodig voor deze frontendresource.
+Zonder Marketplace: plaats het releasebestand `louder-amplifier-card.js` in `/config/www/multiroom-audio-dashboard/`, registreer `/local/multiroom-audio-dashboard/louder-amplifier-card.js?v=2.2.0-beta.7` als module en herlaad. Een HA-herstart is niet nodig voor deze frontendresource.
 
 ## Uiterlijk en bediening
 

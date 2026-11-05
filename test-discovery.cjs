@@ -62,4 +62,24 @@ c=card({entity:'media_player.'+W,players:['media_player.'+W]},undefined);eq(c._c
 // Malformed registry values are ignored.
 c=card({entity:'media_player.'+W,players:['media_player.'+W]},{['media_player.'+W]:{entity_id:'media_player.'+W,device_id:'d1'},'bad':{entity_id:'number.x_left_20hz"><img>',device_id:'d1'},'n':null});
 eq(c._cfg.boards[0].bands,[]);
-console.log('Discovery checks passed: per-device entities, kept without registry, own device only, allow list, single rebuild, explicit wins, stale IDs replaced, incomplete/ambiguous ignored, opt-out, no device/registry, malformed entries.');
+// Sendspin track sensors as now-playing metadata (main entity first, then a playing speaker).
+const meta=(name,dev)=>Object.fromEntries(['track_title','artist','album'].map(k=>['sensor.'+name+'_'+k,{entity_id:'sensor.'+name+'_'+k,device_id:dev}]));
+const regM={...device(W,'d1'),...meta(W,'d1'),...device(R,'d2'),...meta(R,'d2')};
+c=card({entity:'media_player.'+W,players:['media_player.'+W,'media_player.'+R]},regM);
+const st=c._hass.states;st['media_player.'+W].state='playing';
+st['sensor.'+W+'_track_title'].state='Viva house';st['sensor.'+W+'_artist'].state='Me and Jack';st['sensor.'+W+'_album'].state='Essential Elements vol. 6';
+let np=c._nowPlaying();eq(np.id,'media_player.'+W);eq([np.st.attributes.media_title,np.st.attributes.media_artist,np.st.attributes.media_album_name],['Viva house','Me and Jack','Essential Elements vol. 6']);
+eq(st['media_player.'+W].attributes.media_title,undefined,'HA state object is not modified');
+st['media_player.'+W].attributes.media_title='Echte titel';eq(c._nowPlaying().st.attributes.media_title,'Echte titel','Player attributes win');
+delete st['media_player.'+W].attributes.media_title;
+for(const v of ['unknown','unavailable','','   '])st['sensor.'+W+'_track_title'].state=v;
+st['sensor.'+W+'_track_title'].state='unknown';st['media_player.'+R].state='playing';st['sensor.'+R+'_track_title'].state='Rechts nummer';st['sensor.'+R+'_artist'].state='unknown';
+np=c._nowPlaying();eq(np.id,'media_player.'+R,'Unknown sensor ignored; playing speaker used');eq(np.st.attributes.media_title,'Rechts nummer');eq(np.st.attributes.media_artist,undefined);
+st['sensor.'+R+'_track_title'].state='unavailable';eq(c._nowPlaying().st.attributes.media_title,undefined,'Nothing playing with metadata');
+// Main entity not in the speaker list still uses its own device sensors.
+c=card({entity:'media_player.'+W,players:['media_player.'+R]},regM);c._hass.states['sensor.'+W+'_track_title'].state='Hoofdspeler';
+eq(c._nowPlaying().st.attributes.media_title,'Hoofdspeler');
+// Opt-out disables sensor metadata too.
+c=card({entity:'media_player.'+W,players:['media_player.'+W],auto_entities:false},regM);c._hass.states['sensor.'+W+'_track_title'].state='X';
+eq(c._nowPlaying().st.attributes.media_title,undefined);
+console.log('Discovery checks passed: per-device entities, Sendspin track sensors, kept without registry, own device only, allow list, single rebuild, explicit wins, stale IDs replaced, incomplete/ambiguous ignored, opt-out, no device/registry, malformed entries.');
