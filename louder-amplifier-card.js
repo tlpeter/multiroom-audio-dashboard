@@ -1,4 +1,4 @@
-/* Multiroom Audio Dashboard v2.2.0-beta.6 — four styles, local colors and Music Assistant audio relay. */
+/* Multiroom Audio Dashboard v2.2.0-beta.7 — four styles, local colors and Music Assistant audio relay. */
 (() => {
   const TAG = 'multiroom-audio-dashboard';
   const LEGACY_TAG = 'louder-amplifier-card';
@@ -129,7 +129,9 @@
   const BAND_LABELS = ['20','31,5','50','80','125','200','315','500','800','1,25k','2k','3,15k','5k','8k','16k'];
   // Entity ID endings created by the Sonocotta TAS58xx ESPHome packages. Only entities on the
   // same HA device as the selected media_player are considered; explicit config always wins.
-  const DISCOVER = {eq:/^select\.[a-z0-9_]+_eq_mode$/,mixer:/^select\.[a-z0-9_]+_mixer_mode$/,trim_left:/^number\.[a-z0-9_]+_volume_left$/,trim_right:/^number\.[a-z0-9_]+_volume_right$/,temperature:/^sensor\.[a-z0-9_]+_cpu_temperature$/,wifi:/^sensor\.[a-z0-9_]+_wifi_signal$/,fault:/^binary_sensor\.[a-z0-9_]+_any_faults$/,led:/^light\.[a-z0-9_]+_led$/,fan:/^fan\.[a-z0-9_]+$/};
+  const DISCOVER = {eq:/^select\.[a-z0-9_]+_eq_mode$/,mixer:/^select\.[a-z0-9_]+_mixer_mode$/,trim_left:/^number\.[a-z0-9_]+_volume_left$/,trim_right:/^number\.[a-z0-9_]+_volume_right$/,temperature:/^sensor\.[a-z0-9_]+_cpu_temperature$/,wifi:/^sensor\.[a-z0-9_]+_wifi_signal$/,fault:/^binary_sensor\.[a-z0-9_]+_any_faults$/,led:/^light\.[a-z0-9_]+_led$/,fan:/^fan\.[a-z0-9_]+$/,
+    // Sendspin firmware exposes track metadata as text sensors instead of media_player attributes.
+    title_sensor:/^sensor\.[a-z0-9_]+_track_title$/,artist_sensor:/^sensor\.[a-z0-9_]+_artist$/,album_sensor:/^sensor\.[a-z0-9_]+_album$/};
   const PRESETS = {
     vlak: {name:'Vlak', description:'Neutraal · alle banden op 0 dB', values:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},
     bas: {name:'Bas', description:'Extra laag en een stevigere bas', values:[2,3,5,6,5,3,1,0,0,0,0,0,0,0,0]},
@@ -430,21 +432,34 @@
         if((!b.bands.length||!b.bands.every(f=>exists(f.entity)))&&found.bands){next.bands=found.bands;found.bands.forEach(f=>ids.add(f.entity));}
         return next;
       });
+      const main=auto?this._discoverBoard(base.entity):{};
+      this._mainMeta={title_sensor:main.title_sensor,artist_sensor:main.artist_sensor,album_sensor:main.album_sensor};
       const sig=JSON.stringify(boards);
-      if(sig===this._cfgSig)return;
+      if(sig===this._cfgSig){this._sync();return;}
       const current=this._cfg.boards[this._tab]?.player;
       this._cfgSig=sig;this._cfg={...base,boards};this._allowed=ids;
       const keep=boards.findIndex(b=>b.player===current&&b.bands.length);
       this._tab=keep>=0?keep:Math.max(0,boards.findIndex(b=>b.bands.length));
       this._build();
     }
+    _sensorText(id) {
+      const v=id?this._st(id)?.state:null;
+      return typeof v==='string'&&v.trim()&&!['unknown','unavailable'].includes(v)?v.trim().slice(0,300):'';
+    }
+    _withMeta(id,meta) {
+      // Player attributes win; otherwise use the device's track sensors (Sendspin).
+      const st=this._st(id);if(!st)return null;
+      if(st.attributes?.media_title)return st;
+      const title=this._sensorText(meta?.title_sensor);if(!title)return null;
+      return {...st,attributes:{...st.attributes,media_title:title,media_artist:this._sensorText(meta.artist_sensor)||st.attributes?.media_artist,media_album_name:this._sensorText(meta.album_sensor)||st.attributes?.media_album_name}};
+    }
     _nowPlaying() {
       // Main entity first; a group without metadata falls back to a configured speaker that plays.
-      const main=this._st(this._cfg.entity);
-      if(main?.attributes?.media_title)return {id:this._cfg.entity,st:main};
-      const ids=this._cfg.boards.map(b=>b.player).filter(id=>this._st(id)?.attributes?.media_title);
-      const id=ids.find(x=>this._st(x).state==='playing')||ids.find(x=>this._st(x).state==='paused');
-      return id?{id,st:this._st(id)}:{id:this._cfg.entity,st:main};
+      const mainId=this._cfg.entity,main=this._withMeta(mainId,this._mainMeta);
+      if(main)return {id:mainId,st:main};
+      const found=this._cfg.boards.map(b=>({id:b.player,st:this._withMeta(b.player,b)})).filter(x=>x.st);
+      const hit=found.find(x=>x.st.state==='playing')||found.find(x=>x.st.state==='paused');
+      return hit||{id:mainId,st:this._st(mainId)};
     }
     _artUrl(st) {
       const pic=st?.attributes?.entity_picture;

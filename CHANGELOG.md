@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.0-beta.7
+
+- Use the Sendspin track sensors (Track Title, Artist, Album) of the player's device when the media player reports no metadata, so ESPHome Sendspin speakers show what is playing and online info can look it up. Main entity first, then a playing speaker; unknown/unavailable/empty values ignored; player attributes win; `auto_entities: false` disables it. (#29)
+
 ## 2.2.0-beta.6
 
 - Find the amplifier entities of each selected speaker automatically from its Home Assistant device (`hass.entities` → `device_id`): 15 EQ bands, EQ mode, mixer, trims, CPU temperature, WiFi, fault, LED and fan, using the entity names of the Sonocotta TAS58xx ESPHome packages. Speakers picked in the visual editor get their EQ without YAML; after renaming a device the new entity IDs are found. (#27)
