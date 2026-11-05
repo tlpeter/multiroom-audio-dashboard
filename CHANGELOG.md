@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.0-beta.6
+
+- Find the amplifier entities of each selected speaker automatically from its Home Assistant device (`hass.entities` → `device_id`): 15 EQ bands, EQ mode, mixer, trims, CPU temperature, WiFi, fault, LED and fan, using the entity names of the Sonocotta TAS58xx ESPHome packages. Speakers picked in the visual editor get their EQ without YAML; after renaming a device the new entity IDs are found. (#27)
+- Explicitly configured entities keep priority while they exist; stale IDs are replaced by the device's entities. Only entities of the same device are used and added to the allow list; ambiguous or incomplete matches are ignored. `auto_entities: false` disables discovery.
+- Documentation: install and update through the Home Assistant Marketplace (2026.11, formerly HACS), including pre-release and resource path notes; new screenshots of now-playing info, named EQ profiles and the four styles.
+
 ## 2.2.0-beta.5
 
 - Show now-playing info with album art from Home Assistant (`entity_picture`) and a YouTube search link. When the main entity has no metadata (e.g. a group), use the configured speaker that is playing. (#25)
