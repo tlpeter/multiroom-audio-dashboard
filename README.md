@@ -2,7 +2,7 @@
 
 Home Assistant-audiobediening met vier instelbare stijlen, spectrum of analoge bronmeters, eigen kleuren en optionele equalizerbediening. Voorheen Louder Studio Card.
 
-**Status: 2.2.0-beta.5.** Automatisch getest met fictieve HA-statussen en PCM-audio. Praktijktests per speaker/integratie staan nog open. GitHub kan geen apparaten bij jou thuis testen. Deze repository installeert niets automatisch in Home Assistant.
+**Status: 2.2.0-beta.6.** Automatisch getest met fictieve HA-statussen en PCM-audio. Praktijktests per speaker/integratie staan nog open. GitHub kan geen apparaten bij jou thuis testen. Deze repository installeert niets automatisch in Home Assistant.
 
 Snel naar: [Kleuren en stijl](#waar-stel-ik-dit-in) · [Andere speakers kiezen](#andere-slimme-speakers-toevoegen) · [Installeren via HACS](#installeren-via-hacs).
 
@@ -79,7 +79,11 @@ De knop is beschikbaar voor een HA-beheerder. Hij opent alleen de editor: er wor
 
 ![Visuele kaarteditor: kies een hoofdspeler, zoek in Home Assistant-spelers en vink speakers aan](https://raw.githubusercontent.com/tlpeter/multiroom-audio-dashboard/main/docs/images/speaker-editor.png)
 
-Je bestaande EQ-, mixer- en sensorkoppelingen blijven behouden bij geselecteerde versterkers. Een nieuwe speaker krijgt de bediening die zijn HA-integratie aanbiedt; er worden geen luidsprekers automatisch gegroepeerd. Voor optionele hardwarekoppelingen zoals losse EQ-entiteiten blijft de uitgebreide kaartconfiguratie beschikbaar.
+Vanaf **2.2.0-beta.6** zoekt de kaart bij een gekozen speaker zelf de bijbehorende versterkerbediening op: de 15 EQ-banden, EQ-modus, kanaalmix, uitgangstrims, CPU-temperatuur, WiFi, storingsmelding, led en ventilator. Dat gebeurt via het **apparaat** van de speaker in Home Assistant (alleen entiteiten van datzelfde apparaat, met de namen die de Sonocotta ESPHome-firmware maakt). Je hoeft dus geen EQ-entiteiten meer in YAML te zetten, en na het **hernoemen** van een speaker vindt de kaart de nieuwe namen vanzelf.
+
+- Zelf ingestelde entiteiten in de kaartconfiguratie gaan voor, zolang ze bestaan. Een verouderde naam (bijvoorbeeld na hernoemen) wordt vervangen door wat bij het apparaat hoort.
+- Uitzetten kan met `auto_entities: false` in de kaartconfiguratie.
+- Er worden geen luidsprekers automatisch gegroepeerd.
 
 Zie je **Kleuren & uiterlijk** niet? Controleer of het dashboard de nieuwe HACS-resource laadt en herlaad de browser volledig. Volg hieronder de stappen voor een bestaande installatie; je hoeft je dashboard niet opnieuw te maken.
 
@@ -109,7 +113,7 @@ players:
 
 Bij een bestaande installatie: vervang de oude inline/lokale resource eenmalig door bovenstaande HACS-resource. Laad maar **één versie** van het JavaScript. Je oude `custom:louder-amplifier-card`-type, `boards`-configuratie en stijlvoorkeuren blijven werken. De oude bestandsnaam is behouden voor compatibiliteit. Gebruik voor nieuwe HACS-installaties het nieuwe GitHub-adres.
 
-Zonder HACS: plaats het releasebestand `louder-amplifier-card.js` in `/config/www/multiroom-audio-dashboard/`, registreer `/local/multiroom-audio-dashboard/louder-amplifier-card.js?v=2.2.0-beta.5` als module en herlaad. Een HA-herstart is niet nodig voor deze frontendresource.
+Zonder HACS: plaats het releasebestand `louder-amplifier-card.js` in `/config/www/multiroom-audio-dashboard/`, registreer `/local/multiroom-audio-dashboard/louder-amplifier-card.js?v=2.2.0-beta.6` als module en herlaad. Een HA-herstart is niet nodig voor deze frontendresource.
 
 ## Uiterlijk en bediening
 

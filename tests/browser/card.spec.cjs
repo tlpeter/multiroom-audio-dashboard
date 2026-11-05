@@ -145,6 +145,22 @@ test('optional online info shows MusicBrainz and Wikipedia data with attribution
   await page.locator('.np-info').screenshot({path:testInfo.outputPath('now-playing-mobile.png')});
 });
 
+test('speakers chosen without YAML get their own device EQ from the HA registry',async({page})=>{
+  await open(page);
+  await page.evaluate(()=>{const c=document.querySelector('louder-amplifier-card'),s=c.hass.states,entities={};
+    for(const id of Object.keys(s)){const dev=id.includes('speaker_links')?'dev-links':id.includes('speaker_rechts')?'dev-rechts':null;if(dev)entities[id]={entity_id:id,device_id:dev};}
+    c.setConfig({type:'custom:multiroom-audio-dashboard',entity:'media_player.louder_speakers',players:['media_player.speaker_links','media_player.speaker_rechts'],preview:true});
+    c.hass={...c.hass,entities};});
+  await expect(page.locator('#bands input')).toHaveCount(15);
+  await expect(page.getByRole('slider',{name:'speaker links 1,25k Hz',exact:true})).toBeEnabled();
+  await page.getByRole('button',{name:'speaker rechts',exact:true}).click();
+  await page.getByRole('slider',{name:'speaker rechts 20 Hz',exact:true}).press('ArrowRight');
+  const commands=JSON.parse(await page.locator('#commands').textContent());
+  expect(commands).toHaveLength(1);expect(commands[0].target.entity_id).toBe('number.speaker_rechts_left_20hz');
+  await expect(page.locator('select[data-entity="select.speaker_rechts_eq_mode"]')).toHaveCount(1);
+  await expect(page.locator('select[data-entity="select.speaker_links_mixer_mode"]')).toHaveCount(1);
+});
+
 test('all four styles fit a mobile viewport',async({page},testInfo)=>{
   await page.setViewportSize({width:390,height:844});await open(page);
   for(const skin of ['modern','retro','vintage','midnight']){

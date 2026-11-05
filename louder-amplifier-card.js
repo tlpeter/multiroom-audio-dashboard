@@ -1,4 +1,4 @@
-/* Multiroom Audio Dashboard v2.2.0-beta.5 — four styles, local colors and Music Assistant audio relay. */
+/* Multiroom Audio Dashboard v2.2.0-beta.6 — four styles, local colors and Music Assistant audio relay. */
 (() => {
   const TAG = 'multiroom-audio-dashboard';
   const LEGACY_TAG = 'louder-amplifier-card';
@@ -126,6 +126,10 @@
   `;
   // Custom starting curves in dB, ordered by the board's exposed frequencies.
   const FREQUENCIES = ['20hz','31_5hz','50hz','80hz','125hz','200hz','315hz','500hz','800hz','1250hz','2000hz','3150hz','5000hz','8000hz','16000hz'];
+  const BAND_LABELS = ['20','31,5','50','80','125','200','315','500','800','1,25k','2k','3,15k','5k','8k','16k'];
+  // Entity ID endings created by the Sonocotta TAS58xx ESPHome packages. Only entities on the
+  // same HA device as the selected media_player are considered; explicit config always wins.
+  const DISCOVER = {eq:/^select\.[a-z0-9_]+_eq_mode$/,mixer:/^select\.[a-z0-9_]+_mixer_mode$/,trim_left:/^number\.[a-z0-9_]+_volume_left$/,trim_right:/^number\.[a-z0-9_]+_volume_right$/,temperature:/^sensor\.[a-z0-9_]+_cpu_temperature$/,wifi:/^sensor\.[a-z0-9_]+_wifi_signal$/,fault:/^binary_sensor\.[a-z0-9_]+_any_faults$/,led:/^light\.[a-z0-9_]+_led$/,fan:/^fan\.[a-z0-9_]+$/};
   const PRESETS = {
     vlak: {name:'Vlak', description:'Neutraal · alle banden op 0 dB', values:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},
     bas: {name:'Bas', description:'Extra laag en een stevigere bas', values:[2,3,5,6,5,3,1,0,0,0,0,0,0,0,0]},
@@ -244,9 +248,11 @@
       });
       if(new Set(boards.map(b=>b.player)).size!==boards.length)throw Error('Kies elke speler maar één keer.');
       this._cfg={...c,boards};this._tab=Math.max(0,boards.findIndex(b=>b.bands.length));
+      this._baseCfg=this._cfg;this._baseIds=ids;this._entitiesRef=undefined;this._cfgSig=JSON.stringify(boards);
       this._allowed=new Set(ids);this._loadColors();this._build();this._sync();
+      if(this._hass)this._applyDiscovery();
     }
-    set hass(h) { this._hass = h; if(this._cfg) this._sync(); if(this._cfg&&!this._customLoading){this._customLoading=true;this._loadCustomPresets();} }
+    set hass(h) { this._hass = h; if(this._cfg){this._applyDiscovery();this._sync();} if(this._cfg&&!this._customLoading){this._customLoading=true;this._loadCustomPresets();} }
     get hass() { return this._hass; }
     getCardSize() { return 16; }
     connectedCallback() { document.addEventListener('visibilitychange',this._visibilityChanged);this._observe(); }
@@ -397,6 +403,40 @@
       this._q('#eq-description').textContent=b.name+' · de 15 beschikbare EQ-banden van je firmware. Op een telefoon kun je horizontaal door de banden vegen.';
       this._all('[data-act=tab]').forEach(el=>el.setAttribute('aria-pressed',Number(el.dataset.board)===this._tab));
       this._q('.preset-message').textContent='';
+    }
+    _discoverBoard(player) {
+      const reg=this._hass?.entities,device=reg?.[player]?.device_id;
+      if(!device||typeof device!=='string')return {};
+      const own=Object.values(reg).filter(e=>e?.device_id===device&&typeof e.entity_id==='string'&&VALID.test(e.entity_id)).map(e=>e.entity_id).sort();
+      const found={};
+      for(const [key,pattern] of Object.entries(DISCOVER)){const hits=own.filter(id=>pattern.test(id));if(hits.length===1)found[key]=hits[0];}
+      const bands=FREQUENCIES.map((hz,i)=>{const hits=own.filter(id=>id.startsWith('number.')&&id.endsWith('_left_'+hz));return hits.length===1?{entity:hits[0],label:BAND_LABELS[i],frequency:hz}:null;});
+      if(bands.every(Boolean))found.bands=bands;
+      return found;
+    }
+    _applyDiscovery() {
+      const base=this._baseCfg;if(!base||!this._hass)return;
+      // No registry in this hass object (older HA, previews): keep the current mapping.
+      if(!this._hass.entities||typeof this._hass.entities!=='object'||this._hass.entities===this._entitiesRef)return;
+      this._entitiesRef=this._hass.entities;
+      const auto=base.auto_entities!==false;
+      const ids=new Set(this._baseIds);
+      const boards=base.boards.map(b=>{
+        if(!auto)return b;
+        // Explicit entities win while they exist; a stale ID (e.g. after renaming the device) is replaced.
+        const exists=id=>!!(this._hass.states?.[id]||this._hass.entities?.[id]);
+        const found=this._discoverBoard(b.player),next={...b};
+        for(const key of Object.keys(DISCOVER))if((next[key]===undefined||!exists(next[key]))&&found[key]){next[key]=found[key];ids.add(found[key]);}
+        if((!b.bands.length||!b.bands.every(f=>exists(f.entity)))&&found.bands){next.bands=found.bands;found.bands.forEach(f=>ids.add(f.entity));}
+        return next;
+      });
+      const sig=JSON.stringify(boards);
+      if(sig===this._cfgSig)return;
+      const current=this._cfg.boards[this._tab]?.player;
+      this._cfgSig=sig;this._cfg={...base,boards};this._allowed=ids;
+      const keep=boards.findIndex(b=>b.player===current&&b.bands.length);
+      this._tab=keep>=0?keep:Math.max(0,boards.findIndex(b=>b.bands.length));
+      this._build();
     }
     _nowPlaying() {
       // Main entity first; a group without metadata falls back to a configured speaker that plays.

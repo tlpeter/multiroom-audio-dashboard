@@ -6,7 +6,7 @@ De kaart stuurt Home Assistant `media_player`-entiteiten aan. Een merknaam activ
 
 Afspelen/pauze/stop, vorige/volgende, volume, volumestappen, mute, aan/uit, bronkeuze, geluidsprofiel, positie zoeken, shuffle en herhalen, uitsluitend als aangeboden. De hoofdspeler bedient de expliciet ingestelde entiteit; de lijst speakers wordt niet automatisch gegroepeerd of gezamenlijk gedempt. Groepering, mediabibliotheek en overige integratiefuncties openen via **Speler ↗** in de eigen HA-bediening, voor zover HA die aanbiedt.
 
-De handmatige 15-bands EQ-profielen vereisen expliciet gekoppelde number/select-entiteiten met de bekende frequenties en de juiste grenzen. Een Sonos-bassregelaar of een HEOS-geluidsmodus wordt niet behandeld als een 15-bands equalizer. Native geluidsmodi staan apart bij Geluidsprofiel.
+De 15-bands EQ-profielen vereisen number/select-entiteiten met de bekende frequenties en de juiste grenzen. Vanaf 2.2.0-beta.6 worden die bij Sonocotta TAS58xx ESPHome-firmware automatisch gevonden via het HA-apparaat van de gekozen speaker; expliciet gekoppelde entiteiten gaan voor zolang ze bestaan. Een Sonos-bassregelaar of een HEOS-geluidsmodus wordt niet behandeld als een 15-bands equalizer. Native geluidsmodi staan apart bij Geluidsprofiel.
 
 Live bronmeters vereisen een Music Assistant-speler met MilkDrop. Een rechtstreekse Cast-/Sonos-/andere HA-entiteit biedt niet vanzelf PCM-audiodata. Zonder brondata blijven de meters stil; Demo is een expliciete keuze.
 
