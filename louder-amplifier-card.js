@@ -1,4 +1,4 @@
-/* Multiroom Audio Dashboard v2.2.0-beta.7 — four styles, local colors and Music Assistant audio relay. */
+/* Multiroom Audio Dashboard v2.2.0-beta.8 — four styles, local colors and Music Assistant audio relay. */
 (() => {
   const TAG = 'multiroom-audio-dashboard';
   const LEGACY_TAG = 'louder-amplifier-card';
@@ -146,6 +146,11 @@
   // Named user profiles: stored per HA user (frontend user data), browser storage only as fallback.
   // Optional online track info (off by default): MusicBrainz, Wikidata, Wikipedia, Cover Art Archive.
   const ONLINE_KEY='multiroom-audio-dashboard:online-info';
+  // Music search via HA's generic media_player.search_media (Music Assistant supports it).
+  const SEARCH_FILTERS=[['','Alles'],['track','Nummers'],['album','Albums'],['artist','Artiesten'],['playlist','Afspeellijsten']];
+  const SEARCH_CLASS_LABEL={track:'Nummer',album:'Album',artist:'Artiest',playlist:'Afspeellijst',music:'Radio / muziek',podcast:'Podcast',directory:'Luisterboek'};
+  const SEARCH_MAX_RESULTS=40,SEARCH_QUERY_MAX=100;
+  const FEATURE_PLAY_MEDIA=512,FEATURE_ENQUEUE=2097152,FEATURE_SEARCH=4194304;
   const MBID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
   const CUSTOM_KEY='multiroom-audio-dashboard:eq-presets',CUSTOM_MAX=24,CUSTOM_NAME_MAX=40;
   const BUILTIN_NAMES=new Set(Object.values(PRESETS).map(p=>p.name.toLowerCase()));
@@ -224,7 +229,11 @@
       this.shadowRoot.addEventListener('change',e=>this._change(e));
       this.shadowRoot.addEventListener('input',e=>this._input(e));
       this.shadowRoot.addEventListener('click',e=>this._click(e));
-      this.shadowRoot.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches?.('[data-custom-name]')){e.preventDefault();this._saveCustomPreset();}});
+      this.shadowRoot.addEventListener('keydown',e=>{
+        if(e.key!=='Enter')return;
+        if(e.target.matches?.('[data-custom-name]')){e.preventDefault();this._saveCustomPreset();}
+        else if(e.target.matches?.('[data-search-query]')){e.preventDefault();this._search();}
+      });
     }
     setConfig(c) {
       this._stopLive();this._liveRetryAt=0;
@@ -385,11 +394,13 @@
       @media(max-width:620px){.board-body{grid-template-columns:98px minmax(0,1fr);gap:10px}.speaker-art{width:98px}.master-wrap{grid-template-columns:130px minmax(0,1fr);gap:8px}.nav button{font-size:11px;padding:10px 13px;min-height:40px}.master .small-caps{font-size:8px;letter-spacing:.6px}.section-line p{max-width:110px}.selects{gap:6px}}
       .presets{margin-top:15px;padding:14px;border:1px solid var(--line);border-radius:14px;background:#f8fbfc}.preset-heading{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted)}.preset-heading b{color:var(--ink)}.preset-buttons{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.preset-buttons button{min-height:38px;font-size:11px;padding:8px 13px}.preset-buttons button[aria-pressed=true]{background:#e0f4f3;border-color:#83c8c9;color:#127e87}.preset-description,.preset-message{font-size:11px;color:var(--muted);line-height:1.6;margin-top:9px}.preset-message{color:#127e87}.preset-message:empty{display:none}
       .custom-presets-wrap{margin-top:13px;padding-top:11px;border-top:1px dashed var(--line)}.custom-item{display:inline-flex;gap:3px}.custom-delete{min-width:36px;padding:8px 9px}.custom-empty{font-size:11px;color:var(--muted);align-self:center}.custom-save{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.custom-save input{flex:1 1 180px;min-width:0;min-height:38px;padding:0 11px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:12px;background:transparent;color:var(--ink)}.custom-save button{min-height:38px;font-size:11px}
-      .np-info{display:flex;gap:14px;align-items:flex-start;margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:14px}.np-info[hidden]{display:none}.np-art{width:96px;height:96px;border-radius:10px;object-fit:cover;flex-shrink:0;background:var(--line)}.np-art[hidden]{display:none}.np-text{min-width:0;flex:1;font-size:12px;line-height:1.5}.np-meta{font-weight:600;color:var(--ink);overflow-wrap:anywhere}.np-meta:empty{display:none}.np-bio{margin:6px 0 0;color:var(--muted);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}.np-bio:empty{display:none}.np-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.np-links a{font-size:11px;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:5px 10px;text-decoration:none}.np-links a[hidden]{display:none}.np-source{display:block;margin-top:6px;font-size:10px;color:var(--muted)}.np-source:empty{display:none}.online-toggle{display:flex;gap:8px;align-items:center;margin-top:14px;font-size:12px;color:var(--ink)}.online-note{font-size:11px;color:var(--muted);margin:4px 0 0;line-height:1.5}@media(max-width:500px){.np-art{width:64px;height:64px}}
+      .np-info{display:flex;gap:14px;align-items:flex-start;margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:14px}.np-info[hidden]{display:none}.np-art{width:96px;height:96px;border-radius:10px;object-fit:cover;flex-shrink:0;background:var(--line)}.np-art[hidden]{display:none}.np-text{min-width:0;flex:1;font-size:12px;line-height:1.5}.np-meta{font-weight:600;color:var(--ink);overflow-wrap:anywhere}.np-meta:empty{display:none}.np-bio{margin:6px 0 0;color:var(--muted);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}.np-bio:empty{display:none}.np-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.np-links a{font-size:11px;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:5px 10px;text-decoration:none}.np-links a[hidden]{display:none}.np-source{display:block;margin-top:6px;font-size:10px;color:var(--muted)}.np-source:empty{display:none}.music-search{margin-top:18px}.search-bar{display:flex;gap:8px;margin-top:10px}.search-bar input{flex:1;min-width:0;min-height:40px;padding:0 12px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:13px;background:transparent;color:var(--ink)}.search-bar button{min-height:40px}.search-filters{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.search-filters button{font-size:11px;padding:6px 11px;border-radius:999px}.search-filters button[aria-pressed=true]{outline:2px solid currentColor}.search-status{font-size:12px;color:var(--muted);margin:10px 0 0}.search-status:empty{display:none}.search-results{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}.search-results:empty{display:none}.search-item{display:grid;grid-template-columns:52px minmax(0,1fr);gap:6px 10px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:12px;min-width:0}.search-art{width:52px;height:52px;border-radius:8px;object-fit:cover;background:var(--line);display:grid;place-items:center;font-size:18px}.search-text{min-width:0}.search-text b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:12px;line-height:1.35;overflow-wrap:anywhere}.search-text small{font-size:10px;color:var(--muted)}.search-actions{grid-column:1/-1;display:flex;gap:4px;flex-wrap:wrap}.search-actions button{font-size:10px;padding:5px 9px;min-height:30px}
+      .online-toggle{display:flex;gap:8px;align-items:center;margin-top:14px;font-size:12px;color:var(--ink)}.online-note{font-size:11px;color:var(--muted);margin:4px 0 0;line-height:1.5}@media(max-width:500px){.np-art{width:64px;height:64px}}
       @media(prefers-reduced-motion:reduce){.playing .cone{animation:none}}
       </style><main class="studio"><header class="top"><div class="brand"><div class="brandmark">≋</div><div><div class="eyebrow">Jouw geluid. Jouw instelling.</div><h1>Multiroom Audio Dashboard</h1><p class="subline">${c.boards.length} speler${c.boards.length===1?'':'s'} · jouw geluid</p></div></div><nav class="nav"><button class="manage-speakers" data-act="manage-speakers" aria-label="Speakers beheren">⚙ Speakers beheren</button><a href="/lovelace/home" data-nav>⌂ Home</a><button data-act="more-group">Speler openen ↗</button></nav></header><p class="speaker-access-note" role="status" aria-live="polite"></p>
       <div class="overview"><section class="card card-pad"><div class="row"><span class="eyebrow">Nu aan het spelen</span><span class="pill" id="group-state"></span></div><div class="screen"><div class="monitor-meta"><div class="track-icon">♫</div><div class="track"><strong id="title">Even verbinden…</strong><small id="artist">Louder-speakers</small></div><span class="time" id="time">—</span></div><canvas class="spectrum" aria-label="Spectrumdemo; geen meting van het audiosignaal"></canvas><div class="freq"><span>32 Hz</span><span>125</span><span>500</span><span>2k</span><span>8k</span><span>16k</span></div><div class="demo-line"><span>Spectrumdemo · geen live-audioanalyse</span><label><input type="checkbox" id="demo" checked> Animatie</label></div></div><div class="transport"><button data-act="media_previous_track" aria-label="Vorige track">⏮</button><button data-act="media_play_pause" class="play" aria-label="Afspelen of pauzeren" id="play">Ⅱ</button><button data-act="media_next_track" aria-label="Volgende track">⏭</button><button data-act="more-group" aria-label="Speler en wachtrij">☷</button></div><div class="np-info" hidden><img class="np-art" alt="" hidden><div class="np-text"><div class="np-meta" id="np-meta"></div><p class="np-bio" id="np-bio"></p><div class="np-links"><a id="np-youtube" target="_blank" rel="noopener noreferrer">▶ Zoek videoclip op YouTube</a><a id="np-mb" target="_blank" rel="noopener noreferrer" hidden>MusicBrainz</a><a id="np-wiki" target="_blank" rel="noopener noreferrer" hidden>Wikipedia</a></div><small class="np-source" id="np-source"></small></div></div></section>
       <section class="card card-pad master"><div class="row"><span class="eyebrow">Master volume</span><span class="small-caps">HOOFDSPELER</span></div><div class="master-wrap"><div class="dial" id="dial"><div class="dial-inner"><b id="master-value">—</b><small>VOLUME %</small></div></div><div>${this._range(c.entity,'Groepsvolume','volume')}<button class="mute-master" data-act="mute-group" id="mute-group">Geluid dempen</button><p class="master-note">Bedient de ingestelde hoofdspeler.<br>Elke speaker is ook apart instelbaar.</p></div></div></section></div>
+      <section class="card card-pad music-search"><div class="row"><span class="eyebrow">Muziek zoeken</span><span class="small-caps" id="search-target"></span></div><div class="search-bar"><input type="search" data-search-query maxlength="${SEARCH_QUERY_MAX}" placeholder="Artiest, album, nummer of afspeellijst" aria-label="Zoek muziek in Music Assistant" autocomplete="off" enterkeyhint="search"><button type="button" data-act="search">Zoeken</button></div><div class="search-filters" role="group" aria-label="Soort resultaat">${SEARCH_FILTERS.map(([v,l])=>`<button type="button" data-act="search-filter" data-filter="${v}" aria-pressed="${v?'false':'true'}">${l}</button>`).join('')}</div><p class="search-status" role="status" aria-live="polite"></p><ul class="search-results" aria-label="Zoekresultaten"></ul></section>
       <div class="section-line"><h2>Je speakers</h2><p>Live bediening via Home Assistant</p></div><div class="boards">${c.boards.map((b,i)=>`<section class="card card-pad" id="board-${i}"><div class="row board-head"><div><div class="eyebrow">${b.bands.length?'Versterker · ':'Speaker · '}${i+1}</div><h3>${ESC(b.name)}</h3></div><span class="pill" data-status="${i}">—</span></div><div class="board-body">${this._speaker(i)}<div>${this._range(b.player,'Afspeelvolume','volume')}<div class="board-buttons"><button data-act="mute" data-board="${i}" id="mute-${i}">Dempen</button><button data-act="more" data-board="${i}">Speler ↗</button></div><div class="selects">${b.eq?this._select(b.eq,'Equalizer'):''}${b.mixer?this._select(b.mixer,'Kanaalmix'):''}</div></div></div>${this._playerControls(b.player)}<div class="sensors"><span class="sensor">CPU <b id="temp-${i}">—</b></span><span class="sensor">WiFi <b id="wifi-${i}">—</b></span><span class="sensor" id="fault-${i}">Status <b>—</b></span><button data-act="led" data-board="${i}" aria-label="LED van ${ESC(b.name)}" style="font-size:10px;min-height:30px;padding:5px 9px">LED ↗</button><button data-act="fan" data-board="${i}" aria-label="Koeling van ${ESC(b.name)}" style="font-size:10px;min-height:30px;padding:5px 9px">Koeling ↗</button></div></section>`).join('')}</div>
       <section class="card card-pad eq"><div class="row eq-head"><div><span class="eyebrow">Fijnafstelling</span><h2>15-bands equalizer</h2></div><div class="eq-tools"><div class="tabs">${c.boards.map((b,i)=>`<button data-act="tab" data-board="${i}" aria-pressed="${i===this._tab}">${ESC(b.name)}</button>`).join('')}</div><button data-act="flat">Vlak · 0 dB</button></div></div><p class="eq-intro" id="eq-description"></p><div class="eq-scroll"><div class="eq-bands" id="bands"></div></div><div class="eq-axis"><span>Laag · bas</span><span>Midden</span><span>Hoog · detail</span></div><details class="advanced"><summary>Uitgangstrim van dit board · dB</summary><div class="trim-grid" id="trims"></div><p class="eq-intro">Kanaal 1 en 2 zijn de fysieke uitgangen van het geselecteerde board.</p></details></section>
       <p class="error" role="status" aria-live="polite"></p><footer class="foot"><span><b>Bediening live · spectrum demo.</b> De balkjes tonen de sfeer van het ontwerp, niet het gemeten geluid.</span><span>Voor echt audio-reactief beeld: Music Assistant → Plugins → MilkDrop Visualizer.</span></footer></main>`;
@@ -405,6 +416,79 @@
       this._q('#eq-description').textContent=b.name+' · de 15 beschikbare EQ-banden van je firmware. Op een telefoon kun je horizontaal door de banden vegen.';
       this._all('[data-act=tab]').forEach(el=>el.setAttribute('aria-pressed',Number(el.dataset.board)===this._tab));
       this._q('.preset-message').textContent='';
+    }
+    _features(id) {
+      const f=this._st(id)?.attributes?.supported_features;
+      return Number.isSafeInteger(f)&&f>0?f:0;
+    }
+    _searchTarget() {
+      // Main player first, then a configured speaker; it must be able to search and play media.
+      const ok=id=>id&&this._allowed?.has(id)&&this._ok(id)&&(this._features(id)&FEATURE_SEARCH)&&(this._features(id)&FEATURE_PLAY_MEDIA);
+      return [this._cfg.entity,...this._cfg.boards.map(b=>b.player)].find(ok)||null;
+    }
+    _syncSearch() {
+      const label=this._q('#search-target');if(!label)return;
+      const id=this._searchTarget(),busy=!!this._searching;
+      label.textContent=id?(this._st(id)?.attributes?.friendly_name||id):'';
+      const input=this._q('[data-search-query]'),btn=this._q('[data-act=search]');
+      if(input)input.disabled=!id;if(btn)btn.disabled=!id||busy;
+      if(!id&&!this._searchResults?.length)this._q('.search-status').textContent='Zoeken kan via een Music Assistant-speler. Kies die als hoofdspeler of voeg hem toe via ⚙ Speakers beheren.';
+      else if(id&&this._q('.search-status').textContent.startsWith('Zoeken kan via'))this._q('.search-status').textContent='';
+    }
+    _cleanResults(raw) {
+      const list=Array.isArray(raw)?raw:[],out=[];
+      for(const item of list){
+        if(out.length>=SEARCH_MAX_RESULTS)break;
+        if(!item||item.can_play!==true)continue;
+        const title=typeof item.title==='string'?item.title.trim().slice(0,200):'';
+        const id=item.media_content_id,type=item.media_content_type;
+        if(!title||typeof id!=='string'||!id||id.length>500||typeof type!=='string'||!type||type.length>50)continue;
+        out.push({title,id,type,cls:typeof item.media_class==='string'?item.media_class:'',thumb:this._artUrl({attributes:{entity_picture:item.thumbnail}})});
+      }
+      return out;
+    }
+    async _search() {
+      const input=this._q('[data-search-query]'),status=this._q('.search-status'),id=this._searchTarget();
+      const query=typeof input?.value==='string'?input.value.trim().replace(/\s+/g,' '):'';
+      if(!id){this._syncSearch();return;}
+      if(!query){status.textContent='Typ eerst wat je zoekt.';return;}
+      if(query.length>SEARCH_QUERY_MAX){status.textContent='Zoekterm is te lang.';return;}
+      if(typeof this._hass?.callWS!=='function'){status.textContent='Zoeken is hier niet beschikbaar.';return;}
+      const seq=(this._searchSeq||0)+1;this._searchSeq=seq;this._searching=true;this._lastQuery=query;
+      status.textContent='Zoeken…';this._syncSearch();
+      const service_data={search_query:query};if(this._searchFilter)service_data.media_filter_classes=[this._searchFilter];
+      try{
+        const res=await this._hass.callWS({type:'call_service',domain:'media_player',service:'search_media',service_data,target:{entity_id:id},return_response:true});
+        if(seq!==this._searchSeq)return;   // a newer search is running; ignore this answer
+        const results=this._cleanResults(res?.response?.[id]?.result);
+        this._searchResults=results;this._searchEntity=id;
+        status.textContent=results.length?results.length+(results.length===1?' resultaat':' resultaten')+' voor “'+query+'”.':'Niets gevonden voor “'+query+'”.';
+        this._renderResults();
+      }catch(err){
+        if(seq!==this._searchSeq)return;
+        this._searchResults=[];this._renderResults();
+        status.textContent='Zoeken mislukt: '+(err?.message||err);
+      }finally{
+        if(seq===this._searchSeq){this._searching=false;this._syncSearch();}
+      }
+    }
+    _renderResults() {
+      const ul=this._q('.search-results');if(!ul)return;
+      const enqueue=!!(this._features(this._searchEntity)&FEATURE_ENQUEUE);
+      ul.innerHTML=(this._searchResults||[]).map((r,i)=>`<li class="search-item">${r.thumb?`<img class="search-art" alt="" src="${ESC(r.thumb)}" loading="lazy">`:'<span class="search-art" aria-hidden="true">♪</span>'}<div class="search-text"><b title="${ESC(r.title)}">${ESC(r.title)}</b><small>${ESC(SEARCH_CLASS_LABEL[r.cls]||'Muziek')}</small></div><div class="search-actions"><button type="button" data-act="search-play" data-index="${i}" data-enqueue="play" aria-label="${ESC('Afspelen: '+r.title)}">▶ Afspelen</button>${enqueue?`<button type="button" data-act="search-play" data-index="${i}" data-enqueue="next" aria-label="${ESC('Als volgende: '+r.title)}">Volgende</button><button type="button" data-act="search-play" data-index="${i}" data-enqueue="add" aria-label="${ESC('Aan wachtrij toevoegen: '+r.title)}">+ Wachtrij</button>`:''}</div></li>`).join('');
+      ul.querySelectorAll?.('img.search-art').forEach(img=>{img.onerror=()=>{const s=document.createElement('span');s.className='search-art';s.textContent='♪';img.replaceWith(s);};});
+    }
+    async _playResult(index,enqueue) {
+      const item=this._searchResults?.[index],id=this._searchEntity,status=this._q('.search-status');
+      try{
+        if(!item||!Number.isInteger(index))throw Error('dit resultaat is niet meer beschikbaar');
+        if(!['play','next','add'].includes(enqueue))throw Error('onbekende keuze');
+        if(!id||id!==this._searchTarget())throw Error('de speler is gewijzigd, zoek opnieuw');
+        if(enqueue!=='play'&&!(this._features(id)&FEATURE_ENQUEUE))throw Error('deze speler kan geen wachtrij gebruiken');
+        await this._hass.callService('media_player','play_media',{media_content_id:item.id,media_content_type:item.type,enqueue},{entity_id:id});
+        this._q('.error').textContent='';
+        status.textContent=(enqueue==='play'?'Speelt nu: ':enqueue==='next'?'Komt hierna: ':'Toegevoegd aan de wachtrij: ')+item.title;
+      }catch(err){this._q('.error').textContent='Niet afgespeeld: '+(err?.message||err)+'.';}
     }
     _discoverBoard(player) {
       const reg=this._hass?.entities,device=reg?.[player]?.device_id;
@@ -755,6 +839,9 @@
       if(a==='custom-preset'){await this._applyPreset({custom:el.dataset.name});return;}
       if(a==='custom-save'){await this._saveCustomPreset();return;}
       if(a==='custom-delete'){await this._deleteCustomPreset(el.dataset.name);return;}
+      if(a==='search'){await this._search();return;}
+      if(a==='search-filter'){this._searchFilter=SEARCH_FILTERS.some(([v])=>v===el.dataset.filter)?el.dataset.filter:'';this._all('[data-act=search-filter]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.filter===this._searchFilter)));if(this._lastQuery)await this._search();return;}
+      if(a==='search-play'){await this._playResult(Number(el.dataset.index),el.dataset.enqueue);return;}
       if(['media_play_pause','media_previous_track','media_next_track'].includes(a))await this._call('media_player',a,g,{});
     }
     _supports(id, service) {
@@ -810,6 +897,7 @@
       this._q('#title').textContent=np.media_title||'Kies je muziek';
       this._q('#artist').textContent=[np.media_artist,np.media_album_name].filter(Boolean).join(' · ')||attrs.friendly_name||'Je speakers';
       this._syncNowPlaying();
+      this._syncSearch();
       this._q('#group-state').textContent=playing?'● SPEELT':['paused','idle'].includes(g?.state)?'GEREED':'NIET VERBONDEN';
       this._q('#group-state').classList.toggle('dim',!playing);
       this._q('#play').textContent=playing?'Ⅱ':'▶';

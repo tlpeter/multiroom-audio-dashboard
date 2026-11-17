@@ -176,6 +176,34 @@ test('Sendspin track sensors fill now playing when the player has no metadata',a
   await expect(page.locator('#commands')).toHaveText('Geen opdrachten.');
 });
 
+test('Music Assistant search finds and plays results on the main player only after a click',async({page},testInfo)=>{
+  await open(page);
+  await expect(page.getByRole('searchbox',{name:'Zoek muziek in Music Assistant'})).toBeDisabled();
+  await expect(page.locator('.search-status')).toContainText('Music Assistant-speler');
+  await page.evaluate(()=>{const c=document.querySelector('louder-amplifier-card');c.hass.states['media_player.louder_speakers'].attributes.supported_features|=512|2097152|4194304;c.hass={...c.hass};});
+  const box=page.getByRole('searchbox',{name:'Zoek muziek in Music Assistant'});
+  await expect(box).toBeEnabled();
+  await expect(page.locator('#commands')).toHaveText('Geen opdrachten.');
+  await box.fill('louder');await box.press('Enter');
+  await expect(page.locator('.search-status')).toHaveText('4 resultaten voor “louder”.');
+  await page.getByRole('button',{name:'Albums',exact:true}).click();
+  await expect(page.locator('.search-item')).toHaveCount(1);
+  await page.getByRole('button',{name:'Alles',exact:true}).click();
+  await expect(page.locator('.search-item')).toHaveCount(4);
+  await expect(page.locator('#commands')).toHaveText('Geen opdrachten.');
+  await page.locator('.music-search').screenshot({path:testInfo.outputPath('music-search-desktop.png')});
+  await page.getByRole('button',{name:'Afspelen: Louder Studio - Demo track',exact:true}).click();
+  await page.getByRole('button',{name:'Aan wachtrij toevoegen: Louder Studio - Tweede nummer',exact:true}).click();
+  const commands=JSON.parse(await page.locator('#commands').textContent());
+  expect(commands).toEqual([
+    {domain:'media_player',service:'play_media',data:{media_content_id:'library://track/1',media_content_type:'music',enqueue:'play'},target:{entity_id:'media_player.louder_speakers'}},
+    {domain:'media_player',service:'play_media',data:{media_content_id:'library://track/2',media_content_type:'music',enqueue:'add'},target:{entity_id:'media_player.louder_speakers'}}]);
+  await expect(page.locator('.search-status')).toContainText('Toegevoegd aan de wachtrij: Louder Studio - Tweede nummer');
+  await page.setViewportSize({width:390,height:844});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+  await page.locator('.music-search').screenshot({path:testInfo.outputPath('music-search-mobile.png')});
+});
+
 test('all four styles fit a mobile viewport',async({page},testInfo)=>{
   await page.setViewportSize({width:390,height:844});await open(page);
   for(const skin of ['modern','retro','vintage','midnight']){
