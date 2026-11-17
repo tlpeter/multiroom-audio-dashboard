@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.0-beta.8
+
+- New **Muziek zoeken** section: search Music Assistant from the card with filters (all, tracks, albums, artists, playlists) and play a result now, next or at the end of the queue. Uses HA's `media_player.search_media` (response data) and `media_player.play_media` with `enqueue` on the main player, or the first configured speaker that supports searching. Only searches and plays after a click; results are validated, capped at 40, escaped and bound to the player that was searched; stale answers are ignored. (#38)
+
 ## 2.2.0-beta.7
 
 - Use the Sendspin track sensors (Track Title, Artist, Album) of the player's device when the media player reports no metadata, so ESPHome Sendspin speakers show what is playing and online info can look it up. Main entity first, then a playing speaker; unknown/unavailable/empty values ignored; player attributes win; `auto_entities: false` disables it. (#29)

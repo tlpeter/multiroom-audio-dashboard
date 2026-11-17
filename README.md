@@ -2,7 +2,7 @@
 
 Home Assistant-audiobediening met vier instelbare stijlen, spectrum of analoge bronmeters, eigen kleuren en optionele equalizerbediening. Voorheen Louder Studio Card.
 
-**Status: 2.2.0-beta.7.** Automatisch getest met fictieve HA-statussen en PCM-audio. Praktijktests per speaker/integratie staan nog open. GitHub kan geen apparaten bij jou thuis testen. Deze repository installeert niets automatisch in Home Assistant.
+**Status: 2.2.0-beta.8.** Automatisch getest met fictieve HA-statussen en PCM-audio. Praktijktests per speaker/integratie staan nog open. GitHub kan geen apparaten bij jou thuis testen. Deze repository installeert niets automatisch in Home Assistant.
 
 Snel naar: [Kleuren en stijl](#waar-stel-ik-dit-in) · [Andere speakers kiezen](#andere-slimme-speakers-toevoegen) · [Installeren via de Marketplace](#installeren-via-de-marketplace).
 
@@ -54,6 +54,19 @@ Vanaf **2.2.0-beta.5** toont de kaart onder **Nu aan het spelen** de albumhoes e
 - De YouTube-knop opent alleen een zoekopdracht in een nieuw tabblad als je erop klikt.
 
 **Online info (optioneel, standaard uit):** zet onder **Kleuren & uiterlijk** het vinkje **Online info over het nummer** aan. Dan zoekt de kaart artiest, titel en album op bij MusicBrainz, Wikidata en Wikipedia en toont het jaar, een korte tekst over de artiest (Nederlands, anders Engels) en zo nodig een albumhoes van het Cover Art Archive. Met het vinkje uit gaat er niets naar die diensten. De instelling wordt per browser bewaard. Songteksten worden niet getoond (auteursrecht).
+
+### Muziek zoeken in Music Assistant
+
+Vanaf **2.2.0-beta.8** heeft de kaart een blok **Muziek zoeken**. Typ een artiest, album, nummer of afspeellijst en druk op Enter of **Zoeken**. Met de knoppen **Alles, Nummers, Albums, Artiesten, Afspeellijsten** beperk je de resultaten.
+
+![Muziek zoeken: zoekveld, filters en resultaten met Afspelen, Volgende en Wachtrij](https://raw.githubusercontent.com/tlpeter/multiroom-audio-dashboard/main/docs/images/music-search.png)
+
+*Voorbeeld met fictieve resultaten.*
+
+- **▶ Afspelen** start het resultaat meteen. **Volgende** zet het direct na het huidige nummer, **+ Wachtrij** zet het achteraan. Die twee knoppen verschijnen alleen als de speler een wachtrij ondersteunt.
+- Zoeken en afspelen gaan via de **hoofdspeler**, of anders via de eerste speaker in de lijst die zoeken ondersteunt. Dat is in de praktijk een **Music Assistant-speler**; een ESPHome- of Sendspin-speler kan zelf niet zoeken. Kies dus een Music Assistant-speler als hoofdspeler via **⚙ Speakers beheren**.
+- Er wordt alleen gezocht als jij op Zoeken drukt, en alleen afgespeeld als je op een knop van een resultaat drukt.
+- De kaart gebruikt de standaard Home Assistant-actie `media_player.search_media`. Albumhoezen in de resultaten komen van Music Assistant; via HTTPS kan je browser hoezen van een HTTP-adres blokkeren, dan zie je ♪.
 
 ### Eigen equalizerprofielen opslaan
 
@@ -124,7 +137,7 @@ players:
 
 **Oudere Home Assistant (vóór 2026.11):** voeg de repository in HACS toe via menu → **Aangepaste repositories**, type **Dashboard**, en installeer daar.
 
-Zonder Marketplace: plaats het releasebestand `louder-amplifier-card.js` in `/config/www/multiroom-audio-dashboard/`, registreer `/local/multiroom-audio-dashboard/louder-amplifier-card.js?v=2.2.0-beta.7` als module en herlaad. Een HA-herstart is niet nodig voor deze frontendresource.
+Zonder Marketplace: plaats het releasebestand `louder-amplifier-card.js` in `/config/www/multiroom-audio-dashboard/`, registreer `/local/multiroom-audio-dashboard/louder-amplifier-card.js?v=2.2.0-beta.8` als module en herlaad. Een HA-herstart is niet nodig voor deze frontendresource.
 
 ## Uiterlijk en bediening
 
